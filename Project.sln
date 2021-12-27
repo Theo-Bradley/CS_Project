@@ -7,12 +7,24 @@ Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "Project", "Project\Project.
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
+		BladeDebug|x64 = BladeDebug|x64
+		BladeDebug|x86 = BladeDebug|x86
+		BladeRelease|x64 = BladeRelease|x64
+		BladeRelease|x86 = BladeRelease|x86
 		Debug|x64 = Debug|x64
 		Debug|x86 = Debug|x86
 		Release|x64 = Release|x64
 		Release|x86 = Release|x86
 	EndGlobalSection
 	GlobalSection(ProjectConfigurationPlatforms) = postSolution
+		{E3A804FF-475C-4C6E-9B80-A9181BF6B133}.BladeDebug|x64.ActiveCfg = BladeDebug|x64
+		{E3A804FF-475C-4C6E-9B80-A9181BF6B133}.BladeDebug|x64.Build.0 = BladeDebug|x64
+		{E3A804FF-475C-4C6E-9B80-A9181BF6B133}.BladeDebug|x86.ActiveCfg = BladeDebug|Win32
+		{E3A804FF-475C-4C6E-9B80-A9181BF6B133}.BladeDebug|x86.Build.0 = BladeDebug|Win32
+		{E3A804FF-475C-4C6E-9B80-A9181BF6B133}.BladeRelease|x64.ActiveCfg = BladeRelease|x64
+		{E3A804FF-475C-4C6E-9B80-A9181BF6B133}.BladeRelease|x64.Build.0 = BladeRelease|x64
+		{E3A804FF-475C-4C6E-9B80-A9181BF6B133}.BladeRelease|x86.ActiveCfg = BladeRelease|Win32
+		{E3A804FF-475C-4C6E-9B80-A9181BF6B133}.BladeRelease|x86.Build.0 = BladeRelease|Win32
 		{E3A804FF-475C-4C6E-9B80-A9181BF6B133}.Debug|x64.ActiveCfg = Debug|x64
 		{E3A804FF-475C-4C6E-9B80-A9181BF6B133}.Debug|x64.Build.0 = Debug|x64
 		{E3A804FF-475C-4C6E-9B80-A9181BF6B133}.Debug|x86.ActiveCfg = Debug|Win32
