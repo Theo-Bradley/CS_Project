@@ -130,7 +130,7 @@ int main()
         cout << frameTime << endl << endl;
     }
 
-    threadValid = false;
-    physicsThread.join();
+    threadValid = false; //tell physics thread to stop looping
+    physicsThread.join(); //wait until physicsThread finishes
     return 0;
 }
