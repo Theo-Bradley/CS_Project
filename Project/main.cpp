@@ -3,51 +3,11 @@
 #include <thread>
 #include <mutex>
 #include "physics.h"
+#include "Objects.h"
 
 using namespace std;
 
-class Object : public sf::Sprite
-{
-private: sf::Texture texture;
 
-private: sf::Vector2f velocity;
-private: sf::Vector2f acceleration;
-private: sf::Vector2f exAccel; //extraAcceleration
-
-private: mutex mtx;
-
-public: Object()
-{
-    texture.loadFromFile(R"(F:\Project\Project\x64\Debug\Assets\Sprites\test.png)");
-    setTexture(texture, true);
-}
-
-public: void UpdatePhysics()
-{
-    mtx.lock();
-    acceleration = sf::Vector2f(0, 9.81f); //9.81 is gravitational acceleration
-    acceleration += exAccel;
-    exAccel = sf::Vector2f(0.f, 0.f);
-    velocity = physics::Acceleration(velocity, 0.01f, acceleration);
-    move(physics::Displacement(velocity, 0.01f, acceleration)); //0.01 is length of physics loop
-    mtx.unlock();
-}
-
-public: void AddAcceleration(sf::Vector2f accel)
-{
-    exAccel += accel;
-}
-
-public: void setVelocity(sf::Vector2f vel, sf::Vector2f accel)
-{
-    velocity = vel;
-}
-
-public: sf::Vector2f getVelocity()
-{
-    return velocity;
-}
-};
 
 bool jumpFlop = true;
 int frameTime = 0;
@@ -59,31 +19,39 @@ sf::CircleShape shape2(50.f);
 sf::Vector2f shape2Vel = sf::Vector2f(0.f, 0.f);
 sf::Vector2f shape2Accel = sf::Vector2f(0.f,0.f);
 
-Object testObj;
+vector<Object*> objects;
 
-void physicsLoop()
-{
-    using namespace chrono_literals;
-    sf::Clock physicsClock;
-    int targetTime = 10;
-    while (threadValid)
-    {
-        if (physicsClock.getElapsedTime().asMilliseconds() >= targetTime)
-        {
-            shape2Accel = sf::Vector2f(0, 9.81f); //9.81 is gravitational acceleration
+/*
+shape2Accel = sf::Vector2f(0, 9.81f); //9.81 is gravitational acceleration
             if (sf::Keyboard::isKeyPressed(sf::Keyboard::Space) && jumpFlop)
             {
-                shape2Accel += physics::Impulse(sf::Vector2f(2.f, -2000.f), 1.5); // (force in N, time in s, mass in kg)
+                shape2Accel += physics::impulse(sf::Vector2f(2.f, -2000.f), 1.5); // (force in N, time in s, mass in kg)
                 jumpFlop = false;
             }
             if (!sf::Keyboard::isKeyPressed(sf::Keyboard::Space) && !jumpFlop)
             {
                 jumpFlop = true;
             }
-            shape2Vel = physics::Acceleration(shape2Vel, 0.01f, shape2Accel);
-            shape2.move(physics::Displacement(shape2Vel, 0.01f, shape2Accel)); //frameTime is /1000 to get time in seconds
-            testObj.UpdatePhysics();
-            targetTime += 10;
+            shape2Vel = physics::acceleration(shape2Vel, 0.01f, shape2Accel);
+            shape2.move(physics::displacement(shape2Vel, 0.01f, shape2Accel)); //frameTime is /1000 to get time in seconds
+*/
+
+void physicsLoop()
+{
+    using namespace chrono_literals;
+    sf::Clock physicsClock;
+    int targetTime = 10;
+    int startTime;
+    while (threadValid)
+    {
+        if (physicsClock.getElapsedTime().asMilliseconds() >= targetTime)
+        {
+            startTime = physicsClock.getElapsedTime().asMilliseconds();
+            for (Object* obj : objects)
+            {
+                obj->updatePhysics();
+            }
+            targetTime += 10 - (physicsClock.getElapsedTime().asMilliseconds() - startTime);
         }
 
         else
@@ -96,7 +64,7 @@ void physicsLoop()
 int main()
 {
     vector<sf::Drawable*> drawables;
-    sf::RenderWindow window(sf::VideoMode(1920, 1080), "Game Window", sf::Style::Fullscreen);
+    sf::RenderWindow window(sf::VideoMode(1920, 1080), "Game Window", sf::Style::Default);
     window.setVerticalSyncEnabled(true); //enables vSync if possible
     sf::Clock gameClock;
     sf::CircleShape shape(100.f);
@@ -105,7 +73,14 @@ int main()
     shape2.setFillColor(sf::Color::Blue);
     drawables.push_back(&shape);
     drawables.push_back(&shape2);
-    std::cout << "Added Shape" << endl; //simple debug to make sure there isn't dome memory leak occuring
+    Object newObj;
+    Object testObj;
+    newObj.setPosition(25.f, 25.f);
+    objects.push_back(&newObj);
+    drawables.push_back(&newObj);
+    objects.push_back(&testObj);
+    drawables.push_back(&testObj);
+    newObj.addAcceleration(physics::impulse(sf::Vector2f(50.f, -1333.f), 2.f));
 
     thread physicsThread(physicsLoop);
 
@@ -120,14 +95,13 @@ int main()
         }
 
         window.clear(); //clear back buffer
-        window.draw(testObj);
         for (int i = 0; i < drawables.size(); i++)
         {
             window.draw(*drawables[i]); //draw to back buffer
         }
         window.display(); //swap forward and back buffers
         frameTime = gameClock.getElapsedTime().asMilliseconds() - startTime;
-        cout << frameTime << endl << endl;
+        cout << frameTime << "\n" << endl;
     }
 
     threadValid = false; //tell physics thread to stop looping
