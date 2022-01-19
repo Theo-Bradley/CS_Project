@@ -7,35 +7,22 @@
 
 using namespace std;
 
-
-
-bool jumpFlop = true;
 int frameTime = 0;
 int startTime = 0;
 
+int offset = 0;
+bool paused = false;
+int pausedTime = 0;
+bool escapeFlop = false;
+
 bool threadValid = true;
 
-sf::CircleShape shape2(50.f);
-sf::Vector2f shape2Vel = sf::Vector2f(0.f, 0.f);
-sf::Vector2f shape2Accel = sf::Vector2f(0.f,0.f);
-
+enum class State {MainMenu, Setup, PlayerTurn, Paused, WinLoss};
 vector<Object*> objects;
+vector<sf::Drawable*> drawables;
 
-/*
-shape2Accel = sf::Vector2f(0, 9.81f); //9.81 is gravitational acceleration
-            if (sf::Keyboard::isKeyPressed(sf::Keyboard::Space) && jumpFlop)
-            {
-                shape2Accel += physics::impulse(sf::Vector2f(2.f, -2000.f), 1.5); // (force in N, time in s, mass in kg)
-                jumpFlop = false;
-            }
-            if (!sf::Keyboard::isKeyPressed(sf::Keyboard::Space) && !jumpFlop)
-            {
-                jumpFlop = true;
-            }
-            shape2Vel = physics::acceleration(shape2Vel, 0.01f, shape2Accel);
-            shape2.move(physics::displacement(shape2Vel, 0.01f, shape2Accel)); //frameTime is /1000 to get time in seconds
-*/
 
+sf::CircleShape shape2(50.f);
 void physicsLoop()
 {
     using namespace chrono_literals;
@@ -44,14 +31,14 @@ void physicsLoop()
     int startTime;
     while (threadValid)
     {
-        if (physicsClock.getElapsedTime().asMilliseconds() >= targetTime)
+        if (physicsClock.getElapsedTime().asMilliseconds() - offset >= targetTime && paused == false)
         {
-            startTime = physicsClock.getElapsedTime().asMilliseconds();
+            startTime = physicsClock.getElapsedTime().asMilliseconds() - offset;
             for (Object* obj : objects)
             {
                 obj->updatePhysics();
             }
-            targetTime += 10 - (physicsClock.getElapsedTime().asMilliseconds() - startTime);
+            targetTime += 10 - ((physicsClock.getElapsedTime().asMilliseconds() - offset) - startTime);
         }
 
         else
@@ -63,24 +50,25 @@ void physicsLoop()
 
 int main()
 {
-    vector<sf::Drawable*> drawables;
     sf::RenderWindow window(sf::VideoMode(1920, 1080), "Game Window", sf::Style::Default);
     window.setVerticalSyncEnabled(true); //enables vSync if possible
     sf::Clock gameClock;
+    State state = State::MainMenu;
+
     sf::CircleShape shape(100.f);
     shape.setFillColor(sf::Color::Green);
 
     shape2.setFillColor(sf::Color::Blue);
     drawables.push_back(&shape);
     drawables.push_back(&shape2);
-    Object newObj;
-    Object testObj;
+    Object newObj(20.f);
+    Object testObj(10.f);
     newObj.setPosition(25.f, 25.f);
     objects.push_back(&newObj);
     drawables.push_back(&newObj);
     objects.push_back(&testObj);
     drawables.push_back(&testObj);
-    newObj.addAcceleration(physics::impulse(sf::Vector2f(50.f, -1333.f), 2.f));
+    //newObj.addAcceleration(physics::impulse(sf::Vector2f(50.f, -1333.f), 2.f));
 
     thread physicsThread(physicsLoop);
 
@@ -94,6 +82,68 @@ int main()
                 window.close();
         }
 
+        switch (state)
+        {
+        case (State::MainMenu):
+        {
+            cout << "Main Menu" << endl;
+            state = State::Setup;
+            break;
+        }
+        case (State::Setup):
+        {
+            cout << "Setup" << endl;
+            state = State::PlayerTurn;
+            break;
+        }
+
+        case (State::PlayerTurn):
+        {
+            if (sf::Keyboard::isKeyPressed(sf::Keyboard::Space))
+            {
+                newObj.addAcceleration(physics::impulse(sf::Vector2f(50.f, -2000.f), newObj.getMass()));
+            }
+
+            if (paused == false && escapeFlop == false && sf::Keyboard::isKeyPressed(sf::Keyboard::Escape))
+            {
+                pausedTime = gameClock.getElapsedTime().asMilliseconds();
+                paused = true;
+                state = State::Paused;
+                escapeFlop = true;
+            }
+
+            if (escapeFlop == true && !sf::Keyboard::isKeyPressed(sf::Keyboard::Escape))
+                escapeFlop = false;
+
+            cout << "Playing" << endl;
+            break;
+        }
+
+        case (State::Paused):
+        {
+            
+            if (paused == true && escapeFlop == false && sf::Keyboard::isKeyPressed(sf::Keyboard::Escape))
+            {
+                state = State::PlayerTurn;
+                paused = false;
+                escapeFlop = true;
+                offset += gameClock.getElapsedTime().asMilliseconds() - pausedTime;
+            }
+
+            if (escapeFlop == true && !sf::Keyboard::isKeyPressed(sf::Keyboard::Escape))
+                escapeFlop = false;
+            
+            cout << "Paused" << endl;
+            break;
+        }
+
+        case (State::WinLoss):
+        {
+            cout << "winloss" << endl;
+            break;
+        }
+        }
+
         window.clear(); //clear back buffer
         for (int i = 0; i < drawables.size(); i++)
         {
@@ -101,7 +151,7 @@ int main()
         }
         window.display(); //swap forward and back buffers
         frameTime = gameClock.getElapsedTime().asMilliseconds() - startTime;
-        cout << frameTime << "\n" << endl;
+        cout << frameTime << endl;
     }
 
     threadValid = false; //tell physics thread to stop looping
