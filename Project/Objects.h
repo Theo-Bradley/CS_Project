@@ -1,5 +1,10 @@
+#include "Collider.h"
+
 class Object : public sf::Sprite
 {
+public:
+    BoxCollider box;
+
 private:
     sf::Texture texture;
 
@@ -12,11 +17,14 @@ private:
     
 
 public: 
-    Object(float Mass)
+    Object(float Mass, sf::Vector2f Position, sf::Vector2f Size)
     {
         texture.loadFromFile(R"(C:\Users\Blade\Project\CS_Project\x64\BladeDebug\Assets\Sprites\test.png)");
         setTexture(texture, true);
         mass = Mass;
+        //box.setPosition(Position);
+        box.setSize(Size);
+        setPosition(Position);
     }
 
 public:
@@ -38,6 +46,13 @@ public:
     }
 
 public:
+    void move(sf::Vector2f amount)
+    {
+        sf::Sprite::move(amount);
+        box.move(amount);
+    }
+
+public:
     void setVelocity(sf::Vector2f vel, sf::Vector2f accel)
     {
         velocity = vel;
@@ -53,5 +68,24 @@ public:
     float getMass()
     {
         return mass;
+    }
+
+public:
+    int getWidth()
+    {
+        return sf::Sprite::getTextureRect().width;
+    }
+
+public:
+    int getHeight()
+    {
+        return sf::Sprite::getTextureRect().height;
+    }
+
+public:
+    void setPosition(sf::Vector2f Position)
+    {
+        sf::Sprite::setPosition(Position);
+        box.setPosition(Position);
     }
 };
