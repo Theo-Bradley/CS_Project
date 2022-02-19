@@ -31,6 +31,12 @@ public:
 		pos = Position;
 	}
 
+public:
+	void setPosition(float x, float y)
+	{
+		pos = sf::Vector2f(x, y);
+	}
+
 public: 
 	void setSize(sf::Vector2f Size)
 	{

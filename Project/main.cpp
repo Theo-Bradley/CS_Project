@@ -25,55 +25,68 @@ vector<Object*> objects;
 vector<sf::Drawable*> drawables;
 vector<Object*> colliders; //for box on box collision
 //vector<> for bullets
+float groundArray[1922];
+sf::VertexArray groundObject;
 
 sf::CircleShape shape2(50.f);
 
-int calcY(float xPos)
+void generateGround()
+{
+    float v;
+    float w = 30; //flat ground height
+
+    for (int x = 0; x < 1922; x++)
+    {
+        v = (sin(((float)x - 615.f) * (1.f / 220.f)) * 216) + 40; //magic numbers: x offset, x scale, y scale, y offset
+        groundArray[x] = max(round(v), w);
+    }
+
+    groundObject.clear();
+
+    for (int i = 0; i < 1922; i++)
+    {
+        groundObject.append(sf::Vector2f(i, groundArray[i]));
+    }
+
+    groundObject.append(sf::Vector2f(1921, 1080));
+    groundObject.append(sf::Vector2f(0, 1080));
+}
+
+float calcY(float xPos)
 {
     return 0.f;
 }
 
-    sf::Vector2f resolve(Object* a, Object* sender)
+sf::Vector2f resolveX(Object* a, Object* sender)
+{
+    float newPos = sender->getPosition().x;
+
+    //obj = moving obj = sender
+    //collider = stationary object = a
+
+    if (sender->getVelocity().x == 0) //no horizontal movement
     {
-        int sample = 0;
-        int samples = 8;
-        int n = 1; //number or pixels to jump each time
-        bool empty = false;
-        float newPos = sender->getPosition().x;
-
-        sf::Vector2f hitPos;
-
-        //obj = moving obj = sender
-        //collider = stationary object = a
-        if (sender->getVelocity().x < 0) //left
-        {
-            hitPos = sf::Vector2f(sender->getPosition().x - (sample * n), sender->getPosition().y + sender->getHeight());
-            for (int i = sender->getPosition().x - hitPos.x; i < sender->getPosition().x; i++)
-            {
-                if (!empty)
-                    empty = !a->box.contains(hitPos);
-                else
-                {
-                    newPos = i;
-                    break;
-                }
-            }
-        }
-
-        if (sender->getVelocity().x > 0) //right
-            hitPos = sf::Vector2f(sender->getVelocity().x + sender->box.getSize().x - (sample * n), sender->getPosition().y + sender->box.getSize().y);
-            for (int i = hitPos.x - (sender->getPosition().x + sender->box.getSize().x); i < sender->getPosition().x + sender->box.getSize().x; i--)
-            {
-                if (!empty)
-                    empty = !a->box.contains(hitPos);
-                else
-                {
-                    newPos = i;
-                    break;
-                }
-            }
-            return sf::Vector2f(newPos, calcY(newPos));
+        float leftDistance = a->box.getPosition().x + a->box.getSize().x + FLT_EPSILON;
+        float rightDistance = a->box.getPosition().x - sender->box.getSize().x - FLT_EPSILON;
+        newPos = (abs(sender->box.getPosition().x - leftDistance) < abs(sender->box.getPosition().x - rightDistance)) ? leftDistance : rightDistance;
+        cout << "Stationary object overlapping, position resolved.\n" << endl;
     }
+
+    if (sender->getVelocity().x < 0) //left movement
+    {
+        newPos = a->box.getPosition().x + a->box.getSize().x + FLT_EPSILON;
+        sender->setVelocity(sf::Vector2f(0.f, sender->getVelocity().y));
+    }
+
+    if (sender->getVelocity().x > 0) //right movement
+    {
+        newPos = a->box.getPosition().x - sender->box.getSize().x - FLT_EPSILON;
+        sender->setVelocity(sf::Vector2f(0.f, sender->getVelocity().y));
+    }
+
+    //return sf::Vector2f(newPos, calcY(newPos)); //use when calcY has been implemented
+    return sf::Vector2f(newPos, sender->getPosition().y);
+}
 
 
 void physicsLoop()
@@ -91,15 +104,12 @@ void physicsLoop()
             {
                 obj->updatePhysics(); //call the update physics on the current object
             }
-            /*Simple collision resolution
             if (colliders[0]->box.containsBox(&colliders[1]->box))
             {
-                sf::Vector2f dir;
-                dir.x = (colliders[0]->box.getPosition().x < colliders[1]->box.getPosition().x) ? colliders[0]->box.getPosition().x - colliders[1]->box.getPosition().x : colliders[1]->box.getPosition().x - colliders[0]->box.getPosition().x;
-                //cout << dir.x << endl;
-                colliders[1]->move(physics::displacement(sf::Vector2f(0.f, 0.f), 0.1, physics::acceleration(sf::Vector2f(0.f, 0.f), 0.1f, physics::impulse(dir, 2))));
+                //cout << resolve(colliders[0], colliders[1]).x << endl;
+                colliders[0]->setPosition(resolveX(colliders[1], colliders[0]));
             }
-            */
+
             targetTime += 10 - ((physicsClock.getElapsedTime().asMilliseconds() - offset) - startTime); // increment the target time by 10ms minus the time taken to run the loop
         }
 
@@ -123,9 +133,10 @@ int main()
     shape2.setFillColor(sf::Color::Blue);
     drawables.push_back(&shape); //add to render objects vector
     drawables.push_back(&shape2);
-    Object newObj(20.f, sf::Vector2f(0, 0), sf::Vector2f(256, 256)); //create an object with mass of 20kg
-    Object testObj(10.f, sf::Vector2f(0, 0), sf::Vector2f(256, 256)); //create an object with mass of 10kg
-    newObj.setPosition(sf::Vector2f(25.f, 25.f));
+    Object newObj(20.f, sf::Vector2f(540 + 230, 0), sf::Vector2f(256, 256)); //create an object with mass of 20kg
+    Object testObj(10.f, sf::Vector2f(540, 0), sf::Vector2f(256, 256)); //create an object with mass of 10kg
+    testObj.setColor(sf::Color::Green);
+    //newObj.setPosition(sf::Vector2f(25.f, 25.f));
     objects.push_back(&newObj); //add to physics objects vector
     drawables.push_back(&newObj); //add to render objects vector
     colliders.push_back(&newObj);
@@ -156,6 +167,18 @@ int main()
         case (State::Setup):
         {
             cout << "Setup" << endl;
+
+            groundObject.resize(1925);
+            groundObject.setPrimitiveType(sf::PrimitiveType::LineStrip);
+            generateGround();
+            drawables.push_back(&groundObject);
+
+            for (int i = 0; i < 1922; i++)
+            {
+                cout << groundArray[i] << ", ";
+            }
+            cout << endl;
+
             state = State::PlayerTurn; //switch to play state
             paused = false;//let execution of physics loop continue
             break;
@@ -165,7 +188,7 @@ int main()
         {
             if (sf::Keyboard::isKeyPressed(sf::Keyboard::Space) && jumpFlop == false) //space key pressed
             {
-                newObj.addAcceleration(physics::impulse(sf::Vector2f(50.f, -20000.f), newObj.getMass()));
+                newObj.addAcceleration(physics::impulse(sf::Vector2f(+5000.f, 0.f), newObj.getMass()));
                 jumpFlop = true;
             }
             if (jumpFlop && !sf::Keyboard::isKeyPressed(sf::Keyboard::Space))
@@ -188,9 +211,10 @@ int main()
 
         case (State::Paused):
         {
-            
+            //to do: set drawables to paused drawables
             if (paused == true && escapeFlop == false && sf::Keyboard::isKeyPressed(sf::Keyboard::Escape)) //if escape is pressed and allowed
             {
+                //to do: set drawables back to gameplay state
                 state = State::PlayerTurn; //change the state
                 paused = false; //tell physics loop to continue
                 escapeFlop = true;

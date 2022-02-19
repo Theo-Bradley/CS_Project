@@ -53,7 +53,7 @@ public:
     }
 
 public:
-    void setVelocity(sf::Vector2f vel, sf::Vector2f accel)
+    void setVelocity(sf::Vector2f vel)
     {
         velocity = vel;
     }
@@ -87,5 +87,12 @@ public:
     {
         sf::Sprite::setPosition(Position);
         box.setPosition(Position);
+    }
+
+public:
+    void setPosition(float x, float y)
+    {
+        sf::Sprite::setPosition(x, y);
+        box.setPosition(x, y);
     }
 };
