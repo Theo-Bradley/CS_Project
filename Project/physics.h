@@ -8,7 +8,7 @@ using namespace std;
 namespace physics
 {
 	const float g = 9.81f; //gravitaional field strength
-	const float sF = 50.f; //scale factor of 50 Pixels per Metre
+	const float sF = 10.f; //scale factor of 50 Pixels per Metre
 
 	sf::Vector2f displacement(sf::Vector2f u, float t, sf::Vector2f a)
 	{

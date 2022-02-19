@@ -4,6 +4,7 @@
 #include <mutex>
 #include "physics.h"
 #include "Objects.h"
+#include "Collider.h"
 
 using namespace std;
 
@@ -13,16 +14,81 @@ int startTime = 0;
 int offset = 0;
 bool paused = false;
 int pausedTime = 0;
+
 bool escapeFlop = false;
+bool jumpFlop = false;
 
 bool threadValid = true;
 
 enum class State {MainMenu, Setup, PlayerTurn, Paused, WinLoss};
 vector<Object*> objects;
 vector<sf::Drawable*> drawables;
-
+vector<Object*> colliders; //for box on box collision
+//vector<> for bullets
+float groundArray[1922];
+sf::VertexArray groundObject;
 
 sf::CircleShape shape2(50.f);
+
+void generateGround()
+{
+    float v;
+    float w = 30; //flat ground height
+
+    for (int x = 0; x < 1922; x++)
+    {
+        v = (sin(((float)x - 615.f) * (1.f / 220.f)) * 216) + 40; //magic numbers: x offset, x scale, y scale, y offset
+        groundArray[x] = max(round(v), w);
+    }
+
+    groundObject.clear();
+
+    for (int i = 0; i < 1922; i++)
+    {
+        groundObject.append(sf::Vector2f(i, groundArray[i]));
+    }
+
+    groundObject.append(sf::Vector2f(1921, 1080));
+    groundObject.append(sf::Vector2f(0, 1080));
+}
+
+float calcY(float xPos)
+{
+    return 0.f;
+}
+
+sf::Vector2f resolveX(Object* a, Object* sender)
+{
+    float newPos = sender->getPosition().x;
+
+    //obj = moving obj = sender
+    //collider = stationary object = a
+
+    if (sender->getVelocity().x == 0) //no horizontal movement
+    {
+        float leftDistance = a->box.getPosition().x + a->box.getSize().x + FLT_EPSILON;
+        float rightDistance = a->box.getPosition().x - sender->box.getSize().x - FLT_EPSILON;
+        newPos = (abs(sender->box.getPosition().x - leftDistance) < abs(sender->box.getPosition().x - rightDistance)) ? leftDistance : rightDistance;
+        cout << "Stationary object overlapping, position resolved.\n" << endl;
+    }
+
+    if (sender->getVelocity().x < 0) //left movement
+    {
+        newPos = a->box.getPosition().x + a->box.getSize().x + FLT_EPSILON;
+        sender->setVelocity(sf::Vector2f(0.f, sender->getVelocity().y));
+    }
+
+    if (sender->getVelocity().x > 0) //right movement
+    {
+        newPos = a->box.getPosition().x - sender->box.getSize().x - FLT_EPSILON;
+        sender->setVelocity(sf::Vector2f(0.f, sender->getVelocity().y));
+    }
+
+    //return sf::Vector2f(newPos, calcY(newPos)); //use when calcY has been implemented
+    return sf::Vector2f(newPos, sender->getPosition().y);
+}
+
+
 void physicsLoop()
 {
     using namespace chrono_literals;
@@ -34,47 +100,55 @@ void physicsLoop()
         if (physicsClock.getElapsedTime().asMilliseconds() - offset >= targetTime && paused == false)
         {
             startTime = physicsClock.getElapsedTime().asMilliseconds() - offset;
-            for (Object* obj : objects)
+            for (Object* obj : objects) //iterate through every object
             {
-                obj->updatePhysics();
+                obj->updatePhysics(); //call the update physics on the current object
             }
-            targetTime += 10 - ((physicsClock.getElapsedTime().asMilliseconds() - offset) - startTime);
+            if (colliders[0]->box.containsBox(&colliders[1]->box))
+            {
+                //cout << resolve(colliders[0], colliders[1]).x << endl;
+                colliders[0]->setPosition(resolveX(colliders[1], colliders[0]));
+            }
+
+            targetTime += 10 - ((physicsClock.getElapsedTime().asMilliseconds() - offset) - startTime); // increment the target time by 10ms minus the time taken to run the loop
         }
 
         else
         {
-            this_thread::sleep_for(500us);
+            this_thread::sleep_for(500us); //wait for 0.5ms
         }
     }
 }
 
 int main()
 {
-    sf::RenderWindow window(sf::VideoMode(1920, 1080), "Game Window", sf::Style::Default);
+    sf::RenderWindow window(sf::VideoMode(1920, 1080), "Game Window", sf::Style::Default); //create a new 1080p window with title game window and not a fullscreen style
     window.setVerticalSyncEnabled(true); //enables vSync if possible
-    sf::Clock gameClock;
-    State state = State::MainMenu;
+    sf::Clock gameClock; //create a new clock
+    State state = State::MainMenu; //set the initial state to the main menu state
+    paused = true; //pause physics loop while everything is set up
 
     sf::CircleShape shape(100.f);
-    shape.setFillColor(sf::Color::Green);
-
+    shape.setFillColor(sf::Color::Green); //set fill colour of the shapes
     shape2.setFillColor(sf::Color::Blue);
-    drawables.push_back(&shape);
+    drawables.push_back(&shape); //add to render objects vector
     drawables.push_back(&shape2);
-    Object newObj(20.f);
-    Object testObj(10.f);
-    newObj.setPosition(25.f, 25.f);
-    objects.push_back(&newObj);
-    drawables.push_back(&newObj);
+    Object newObj(20.f, sf::Vector2f(540 + 230, 0), sf::Vector2f(256, 256)); //create an object with mass of 20kg
+    Object testObj(10.f, sf::Vector2f(540, 0), sf::Vector2f(256, 256)); //create an object with mass of 10kg
+    testObj.setColor(sf::Color::Green);
+    //newObj.setPosition(sf::Vector2f(25.f, 25.f));
+    objects.push_back(&newObj); //add to physics objects vector
+    drawables.push_back(&newObj); //add to render objects vector
+    colliders.push_back(&newObj);
     objects.push_back(&testObj);
     drawables.push_back(&testObj);
-    //newObj.addAcceleration(physics::impulse(sf::Vector2f(50.f, -1333.f), 2.f));
+    colliders.push_back(&testObj);
 
     thread physicsThread(physicsLoop);
 
     while (window.isOpen())
     {
-        startTime = gameClock.getElapsedTime().asMilliseconds();
+        startTime = gameClock.getElapsedTime().asMilliseconds(); //initial time on each frame
         sf::Event event;
         while (window.pollEvent(event))
         {
@@ -87,50 +161,67 @@ int main()
         case (State::MainMenu):
         {
             cout << "Main Menu" << endl;
-            state = State::Setup;
+            state = State::Setup; //switch to set state
             break;
         }
         case (State::Setup):
         {
             cout << "Setup" << endl;
-            state = State::PlayerTurn;
+
+            groundObject.resize(1925);
+            groundObject.setPrimitiveType(sf::PrimitiveType::LineStrip);
+            generateGround();
+            drawables.push_back(&groundObject);
+
+            for (int i = 0; i < 1922; i++)
+            {
+                cout << groundArray[i] << ", ";
+            }
+            cout << endl;
+
+            state = State::PlayerTurn; //switch to play state
+            paused = false;//let execution of physics loop continue
             break;
         }
 
         case (State::PlayerTurn):
         {
-            if (sf::Keyboard::isKeyPressed(sf::Keyboard::Space))
+            if (sf::Keyboard::isKeyPressed(sf::Keyboard::Space) && jumpFlop == false) //space key pressed
             {
-                newObj.addAcceleration(physics::impulse(sf::Vector2f(50.f, -2000.f), newObj.getMass()));
+                newObj.addAcceleration(physics::impulse(sf::Vector2f(+5000.f, 0.f), newObj.getMass()));
+                jumpFlop = true;
             }
+            if (jumpFlop && !sf::Keyboard::isKeyPressed(sf::Keyboard::Space))
+                jumpFlop = false;
 
-            if (paused == false && escapeFlop == false && sf::Keyboard::isKeyPressed(sf::Keyboard::Escape))
+            if (paused == false && escapeFlop == false && sf::Keyboard::isKeyPressed(sf::Keyboard::Escape)) //if escape is pressed and allowed
             {
-                pausedTime = gameClock.getElapsedTime().asMilliseconds();
-                paused = true;
-                state = State::Paused;
+                pausedTime = gameClock.getElapsedTime().asMilliseconds(); //start recording the paused time
+                paused = true; //pause physics loop
+                state = State::Paused; //change state
                 escapeFlop = true;
             }
 
             if (escapeFlop == true && !sf::Keyboard::isKeyPressed(sf::Keyboard::Escape))
                 escapeFlop = false;
 
-            cout << "Playing" << endl;
+            //cout << "Playing" << endl;
             break;
         }
 
         case (State::Paused):
         {
-            
-            if (paused == true && escapeFlop == false && sf::Keyboard::isKeyPressed(sf::Keyboard::Escape))
+            //to do: set drawables to paused drawables
+            if (paused == true && escapeFlop == false && sf::Keyboard::isKeyPressed(sf::Keyboard::Escape)) //if escape is pressed and allowed
             {
-                state = State::PlayerTurn;
-                paused = false;
+                //to do: set drawables back to gameplay state
+                state = State::PlayerTurn; //change the state
+                paused = false; //tell physics loop to continue
                 escapeFlop = true;
-                offset += gameClock.getElapsedTime().asMilliseconds() - pausedTime;
+                offset += gameClock.getElapsedTime().asMilliseconds() - pausedTime; //apply offset to physics clock
             }
 
-            if (escapeFlop == true && !sf::Keyboard::isKeyPressed(sf::Keyboard::Escape))
+            if (escapeFlop == true && !sf::Keyboard::isKeyPressed(sf::Keyboard::Escape)) //if the escape key is not pressed, reset the flop
                 escapeFlop = false;
             
             cout << "Paused" << endl;
@@ -150,10 +241,11 @@ int main()
             window.draw(*drawables[i]); //draw to back buffer
         }
         window.display(); //swap forward and back buffers
-        frameTime = gameClock.getElapsedTime().asMilliseconds() - startTime;
-        cout << frameTime << endl;
+        frameTime = gameClock.getElapsedTime().asMilliseconds() - startTime; //calculate frametime
+        //cout << frameTime << "ms" << endl; //print the frame 
     }
 
+    cout << "quitting" << endl;
     threadValid = false; //tell physics thread to stop looping
     physicsThread.join(); //wait until physicsThread finishes
     return 0;
