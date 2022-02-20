@@ -33,11 +33,11 @@ sf::CircleShape shape2(50.f);
 void generateGround()
 {
     float v;
-    float w = 30; //flat ground height
+    float w = 80; //flat ground height
 
     for (int x = 0; x < 1922; x++)
     {
-        v = (sin(((float)x - 615.f) * (1.f / 220.f)) * 216) + 40; //magic numbers: x offset, x scale, y scale, y offset
+        v = (sin(((float)x - 615.f) * (1.f / 220.f)) * 216) + 90; //magic numbers: x offset, x scale, y scale, y offset
         groundArray[x] = max(round(v), w);
     }
 
@@ -45,11 +45,9 @@ void generateGround()
 
     for (int i = 0; i < 1922; i++)
     {
-        groundObject.append(sf::Vector2f(i, groundArray[i]));
+        groundObject.append(sf::Vertex(sf::Vector2f((float)i, 1080 - groundArray[i]), sf::Vector2f((float)(i % 960), 0)));
+        groundObject.append(sf::Vertex(sf::Vector2f((float)i, 1080), sf::Vector2f((float)(i % 960), groundArray[i]))); //256 + 50 is the max height of the ground
     }
-
-    groundObject.append(sf::Vector2f(1921, 1080));
-    groundObject.append(sf::Vector2f(0, 1080));
 }
 
 float calcY(float xPos)
@@ -137,6 +135,10 @@ int main()
     Object testObj(10.f, sf::Vector2f(540, 0), sf::Vector2f(256, 256)); //create an object with mass of 10kg
     testObj.setColor(sf::Color::Green);
     //newObj.setPosition(sf::Vector2f(25.f, 25.f));
+    sf::Texture groundTex;
+    groundTex.loadFromFile(R"(C:\Users\Blade\Project\CS_Project\x64\BladeDebug\Assets\Sprites\groundTex.png)");
+    sf::RenderStates groundState;
+    groundState.texture = &groundTex;
     objects.push_back(&newObj); //add to physics objects vector
     drawables.push_back(&newObj); //add to render objects vector
     colliders.push_back(&newObj);
@@ -168,10 +170,10 @@ int main()
         {
             cout << "Setup" << endl;
 
-            groundObject.resize(1925);
-            groundObject.setPrimitiveType(sf::PrimitiveType::LineStrip);
+            groundObject.resize(3842);
+            groundObject.setPrimitiveType(sf::PrimitiveType::Lines);
             generateGround();
-            drawables.push_back(&groundObject);
+            //drawables.push_back(&groundObject);
 
             for (int i = 0; i < 1922; i++)
             {
@@ -236,13 +238,14 @@ int main()
         }
 
         window.clear(); //clear back buffer
+        window.draw(groundObject, groundState);
         for (int i = 0; i < drawables.size(); i++)
         {
             window.draw(*drawables[i]); //draw to back buffer
         }
         window.display(); //swap forward and back buffers
         frameTime = gameClock.getElapsedTime().asMilliseconds() - startTime; //calculate frametime
-        //cout << frameTime << "ms" << endl; //print the frame 
+        cout << frameTime << "ms" << endl; //print the frame 
     }
 
     cout << "quitting" << endl;
