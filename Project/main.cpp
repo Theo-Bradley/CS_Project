@@ -50,9 +50,23 @@ void generateGround()
     }
 }
 
-float calcY(float xPos)
+float calcY(Object* sender, float xPos)
 {
-    return 0.f;
+    //cout << "calcingY\n";
+    int pos = round(xPos);
+    sf::Vector2f size = sender->box.getSize();
+    if (sender->box.getPosition().y + size.y >= 1080 - groundArray[pos] || sender->box.getPosition().y + size.y >= 1080 - groundArray[(pos + (int)round(size.x))])
+    {
+        float left =  1080 - groundArray[pos] - size.y;
+        float right = 1080 - groundArray[(pos + (int)round(size.x))] - size.y;
+        sender->setVelocity(sf::Vector2f(sender->getVelocity().x, 0.f));
+        return (left <= right) ? left : right;
+    }
+
+    else 
+    {
+        return sender->getPosition().y;
+    }
 }
 
 sf::Vector2f resolveX(Object* a, Object* sender)
@@ -82,8 +96,8 @@ sf::Vector2f resolveX(Object* a, Object* sender)
         sender->setVelocity(sf::Vector2f(0.f, sender->getVelocity().y));
     }
 
-    //return sf::Vector2f(newPos, calcY(newPos)); //use when calcY has been implemented
-    return sf::Vector2f(newPos, sender->getPosition().y);
+    return sf::Vector2f(newPos, calcY(sender, newPos)); //use when calcY has been implemented
+    //return sf::Vector2f(newPos, sender->getPosition().y);
 }
 
 
@@ -101,10 +115,10 @@ void physicsLoop()
             for (Object* obj : objects) //iterate through every object
             {
                 obj->updatePhysics(); //call the update physics on the current object
+                obj->setPosition(obj->getPosition().x, calcY(obj, obj->getPosition().x));
             }
             if (colliders[0]->box.containsBox(&colliders[1]->box))
             {
-                //cout << resolve(colliders[0], colliders[1]).x << endl;
                 colliders[0]->setPosition(resolveX(colliders[1], colliders[0]));
             }
 
@@ -131,7 +145,6 @@ int main()
     shape2.setFillColor(sf::Color::Blue);
     drawables.push_back(&shape); //add to render objects vector
     drawables.push_back(&shape2);
-    Object newObj(20.f, sf::Vector2f(540 + 230, 0), sf::Vector2f(256, 256)); //create an object with mass of 20kg
     Object testObj(10.f, sf::Vector2f(540, 0), sf::Vector2f(256, 256)); //create an object with mass of 10kg
     testObj.setColor(sf::Color::Green);
     //newObj.setPosition(sf::Vector2f(25.f, 25.f));
@@ -139,9 +152,13 @@ int main()
     groundTex.loadFromFile(R"(C:\Users\Blade\Project\CS_Project\x64\BladeDebug\Assets\Sprites\groundTex.png)");
     sf::RenderStates groundState;
     groundState.texture = &groundTex;
-    objects.push_back(&newObj); //add to physics objects vector
-    drawables.push_back(&newObj); //add to render objects vector
-    colliders.push_back(&newObj);
+    sf::Texture truckTex;
+    truckTex.loadFromFile(R"(C:\Users\Blade\Project\CS_Project\Project\Assets\Sprites\truck.png)");
+    Object truckTest(20.f, sf::Vector2f(1200, 0), sf::Vector2f(75, 35));
+    truckTest.setTexture(truckTex, true);
+    drawables.push_back(&truckTest);
+    objects.push_back(&truckTest);
+    colliders.push_back(&truckTest);
     objects.push_back(&testObj);
     drawables.push_back(&testObj);
     colliders.push_back(&testObj);
@@ -190,7 +207,7 @@ int main()
         {
             if (sf::Keyboard::isKeyPressed(sf::Keyboard::Space) && jumpFlop == false) //space key pressed
             {
-                newObj.addAcceleration(physics::impulse(sf::Vector2f(+5000.f, 0.f), newObj.getMass()));
+                truckTest.addAcceleration(physics::impulse(sf::Vector2f(+5000.f, -50000.f), truckTest.getMass()));
                 jumpFlop = true;
             }
             if (jumpFlop && !sf::Keyboard::isKeyPressed(sf::Keyboard::Space))
@@ -245,7 +262,7 @@ int main()
         }
         window.display(); //swap forward and back buffers
         frameTime = gameClock.getElapsedTime().asMilliseconds() - startTime; //calculate frametime
-        cout << frameTime << "ms" << endl; //print the frame 
+        //cout << frameTime << "ms" << endl; //print the frame 
     }
 
     cout << "quitting" << endl;

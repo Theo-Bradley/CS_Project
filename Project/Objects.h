@@ -12,6 +12,7 @@ private:
     sf::Vector2f acceleration;
     sf::Vector2f exAccel; //extraAcceleration
     float mass;
+    sf::Vector2f offset;
 
     mutex mtx;
     
@@ -22,7 +23,7 @@ public:
         texture.loadFromFile(R"(C:\Users\Blade\Project\CS_Project\x64\BladeDebug\Assets\Sprites\test.png)");
         setTexture(texture, true);
         mass = Mass;
-        //box.setPosition(Position);
+        //box.setPosition(Position + offset);
         box.setSize(Size);
         setPosition(Position);
     }
