@@ -21,7 +21,7 @@ bool jumpFlop = false;
 bool threadValid = true;
 
 enum class State {MainMenu, Setup, PlayerTurn, Paused, WinLoss};
-vector<Object*> objects;
+vector<Truck*> trucks;
 vector<sf::Drawable*> drawables;
 vector<Object*> colliders; //for box on box collision
 //vector<> for bullets
@@ -53,7 +53,7 @@ void generateGround()
 float calcY(Object* sender, float xPos)
 {
     //cout << "calcingY\n";
-    int pos = round(xPos);
+    int pos = (int)round(xPos);
     sf::Vector2f size = sender->box.getSize();
     if (sender->box.getPosition().y + size.y >= 1080 - groundArray[pos] || sender->box.getPosition().y + size.y >= 1080 - groundArray[(pos + (int)round(size.x))])
     {
@@ -112,10 +112,10 @@ void physicsLoop()
         if (physicsClock.getElapsedTime().asMilliseconds() - offset >= targetTime && paused == false)
         {
             startTime = physicsClock.getElapsedTime().asMilliseconds() - offset;
-            for (Object* obj : objects) //iterate through every object
+            for (Truck* truck : trucks) //iterate through every object
             {
-                obj->updatePhysics(); //call the update physics on the current object
-                obj->setPosition(obj->getPosition().x, calcY(obj, obj->getPosition().x));
+                truck->updatePhysics(); //call the update physics on the current object
+                truck->setPosition(truck->getPosition().x, calcY(truck, truck->getPosition().x));
             }
             if (colliders[0]->box.containsBox(&colliders[1]->box))
             {
@@ -140,10 +140,10 @@ int main()
     State state = State::MainMenu; //set the initial state to the main menu state
     paused = true; //pause physics loop while everything is set up
 
-    sf::CircleShape shape(100.f);
-    shape.setFillColor(sf::Color::Green); //set fill colour of the shapes
+    sf::CircleShape shape(6);
+    shape.setFillColor(sf::Color::Red); //set fill colour of the shapes
+    shape.setOrigin(6, 6);
     shape2.setFillColor(sf::Color::Blue);
-    drawables.push_back(&shape); //add to render objects vector
     drawables.push_back(&shape2);
     Object testObj(10.f, sf::Vector2f(540, 0), sf::Vector2f(256, 256)); //create an object with mass of 10kg
     testObj.setColor(sf::Color::Green);
@@ -154,12 +154,14 @@ int main()
     groundState.texture = &groundTex;
     sf::Texture truckTex;
     truckTex.loadFromFile(R"(C:\Users\Blade\Project\CS_Project\Project\Assets\Sprites\truck.png)");
-    Object truckTest(20.f, sf::Vector2f(1200, 0), sf::Vector2f(75, 35));
+    Truck truckTest(20.f, sf::Vector2f(1200, 0), sf::Vector2f(75, 35));
     truckTest.setTexture(truckTex, true);
     drawables.push_back(&truckTest);
-    objects.push_back(&truckTest);
+    drawables.push_back(&truckTest.arm);
+    drawables.push_back(&shape); //test circle should draw ontop of the arm
+    trucks.push_back(&truckTest);
     colliders.push_back(&truckTest);
-    objects.push_back(&testObj);
+    //objects.push_back(&testObj);
     drawables.push_back(&testObj);
     colliders.push_back(&testObj);
 
@@ -190,13 +192,6 @@ int main()
             groundObject.resize(3842);
             groundObject.setPrimitiveType(sf::PrimitiveType::Lines);
             generateGround();
-            //drawables.push_back(&groundObject);
-
-            for (int i = 0; i < 1922; i++)
-            {
-                cout << groundArray[i] << ", ";
-            }
-            cout << endl;
 
             state = State::PlayerTurn; //switch to play state
             paused = false;//let execution of physics loop continue
@@ -205,14 +200,6 @@ int main()
 
         case (State::PlayerTurn):
         {
-            if (sf::Keyboard::isKeyPressed(sf::Keyboard::Space) && jumpFlop == false) //space key pressed
-            {
-                truckTest.addAcceleration(physics::impulse(sf::Vector2f(+5000.f, -50000.f), truckTest.getMass()));
-                jumpFlop = true;
-            }
-            if (jumpFlop && !sf::Keyboard::isKeyPressed(sf::Keyboard::Space))
-                jumpFlop = false;
-
             if (paused == false && escapeFlop == false && sf::Keyboard::isKeyPressed(sf::Keyboard::Escape)) //if escape is pressed and allowed
             {
                 pausedTime = gameClock.getElapsedTime().asMilliseconds(); //start recording the paused time
@@ -223,6 +210,27 @@ int main()
 
             if (escapeFlop == true && !sf::Keyboard::isKeyPressed(sf::Keyboard::Escape))
                 escapeFlop = false;
+
+            if (sf::Keyboard::isKeyPressed(sf::Keyboard::Space) && jumpFlop == false) //space key pressed
+            {
+                truckTest.addAcceleration(physics::impulse(sf::Vector2f(+5000.f, 0.f), truckTest.getMass()));
+                jumpFlop = true;
+            }
+
+            if (jumpFlop && !sf::Keyboard::isKeyPressed(sf::Keyboard::Space))
+                jumpFlop = false;
+
+            if (sf::Keyboard::isKeyPressed(sf::Keyboard::Key::Up))
+            {
+                truckTest.rotateAngle(-0.1f * frameTime);
+            }
+
+            if (sf::Keyboard::isKeyPressed(sf::Keyboard::Key::Down))
+            {
+                truckTest.rotateAngle(+0.1f * frameTime);
+            }
+
+            shape.setPosition(truckTest.spawnPoint());
 
             //cout << "Playing" << endl;
             break;
