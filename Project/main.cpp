@@ -24,7 +24,7 @@ enum class State {MainMenu, Setup, PlayerTurn, Paused, WinLoss};
 vector<Truck*> trucks;
 vector<sf::Drawable*> drawables;
 vector<Object*> colliders; //for box on box collision
-//vector<> for bullets
+vector<Projectile*> projectiles;
 float groundArray[1922];
 sf::VertexArray groundObject;
 
@@ -121,6 +121,10 @@ void physicsLoop()
             {
                 colliders[0]->setPosition(resolveX(colliders[1], colliders[0]));
             }
+            for (Projectile* projectile : projectiles)
+            {
+                projectile->updatePhysics();
+            }
 
             targetTime += 10 - ((physicsClock.getElapsedTime().asMilliseconds() - offset) - startTime); // increment the target time by 10ms minus the time taken to run the loop
         }
@@ -139,14 +143,14 @@ int main()
     sf::Clock gameClock; //create a new clock
     State state = State::MainMenu; //set the initial state to the main menu state
     paused = true; //pause physics loop while everything is set up
-
     sf::CircleShape shape(6);
     shape.setFillColor(sf::Color::Red); //set fill colour of the shapes
     shape.setOrigin(6, 6);
     shape2.setFillColor(sf::Color::Blue);
     drawables.push_back(&shape2);
-    Object testObj(10.f, sf::Vector2f(540, 0), sf::Vector2f(256, 256)); //create an object with mass of 10kg
+    Object testObj(10.f, sf::Vector2f(660, 600), sf::Vector2f(256, 256)); //create an object with mass of 10kg
     testObj.setColor(sf::Color::Green);
+    Projectile* currentProjectile = nullptr;
     //newObj.setPosition(sf::Vector2f(25.f, 25.f));
     sf::Texture groundTex;
     groundTex.loadFromFile(R"(C:\Users\Blade\Project\CS_Project\x64\BladeDebug\Assets\Sprites\groundTex.png)");
@@ -154,8 +158,10 @@ int main()
     groundState.texture = &groundTex;
     sf::Texture truckTex;
     truckTex.loadFromFile(R"(C:\Users\Blade\Project\CS_Project\Project\Assets\Sprites\truck.png)");
-    Truck truckTest(20.f, sf::Vector2f(1200, 0), sf::Vector2f(75, 35));
+    Truck truckTest(20.f, sf::Vector2f(120, 0), sf::Vector2f(75, 35));
     truckTest.setTexture(truckTex, true);
+    sf::Texture projectileTex;
+    projectileTex.loadFromFile(R"(C:\Users\Blade\Project\CS_Project\x64\BladeDebug\Assets\Sprites\projectile.png)");
     drawables.push_back(&truckTest);
     drawables.push_back(&truckTest.arm);
     drawables.push_back(&shape); //test circle should draw ontop of the arm
@@ -213,7 +219,14 @@ int main()
 
             if (sf::Keyboard::isKeyPressed(sf::Keyboard::Space) && jumpFlop == false) //space key pressed
             {
-                truckTest.addAcceleration(physics::impulse(sf::Vector2f(+5000.f, 0.f), truckTest.getMass()));
+                //truckTest.addAcceleration(physics::impulse(sf::Vector2f(+5000.f, 0.f), truckTest.getMass()));
+                sf::Vector2f endPoint = truckTest.spawnPoint();
+                sf::Vector2f startPoint = truckTest.arm.getTransform().transformPoint(0, 6.5);
+                currentProjectile = new Projectile(endPoint - startPoint, &projectileTex);
+                currentProjectile->setPosition(endPoint);
+                projectiles.push_back(currentProjectile);
+                drawables.insert(drawables.begin(), currentProjectile);
+
                 jumpFlop = true;
             }
 
@@ -229,8 +242,6 @@ int main()
             {
                 truckTest.rotateAngle(+0.1f * frameTime);
             }
-
-            shape.setPosition(truckTest.spawnPoint());
 
             //cout << "Playing" << endl;
             break;

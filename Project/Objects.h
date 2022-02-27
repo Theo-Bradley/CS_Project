@@ -14,7 +14,6 @@ private:
     sf::Vector2f acceleration;
     sf::Vector2f exAccel; //extraAcceleration
     float mass;
-    sf::Vector2f offset;
 
     mutex mtx;
     
@@ -180,5 +179,74 @@ public:
         float radAngle = (aimAngle / 180) * PI;
         sf::Vector2f spawnPoint = sf::Vector2f(armPos.x + cos(radAngle) * 28.5f, armPos.y + sin(radAngle) * 28.5f); //35 is the arm length
         return spawnPoint;
+    }
+};
+
+class Projectile : public sf::Sprite
+{
+private:
+    sf::Vector2f velocity;
+    sf::Vector2f acceleration;
+    sf::Vector2f exAccel; //extraAcceleration
+    float mass;
+
+    mutex mtx;
+
+public:
+    Projectile(sf::Vector2f trajectory, sf::Texture* tex)
+    {
+        mass = 5.f;
+        setOrigin(6, 6);
+        setTexture(*tex, true);
+        exAccel = normalise(trajectory) * 4000.f; //+- 500 from power
+    }
+
+public:
+    sf::Vector2f normalise(const sf::Vector2f& vec)
+    {
+        float length = sqrt((vec.x * vec.x) + (vec.y * vec.y));
+        if (length != 0)
+            return sf::Vector2f(vec.x / length, vec.y / length);
+        else
+            return vec;
+    }
+
+public:
+    void updatePhysics()
+    {
+        mtx.lock();
+        acceleration = sf::Vector2f(0, 9.81f); //9.81 is gravitational acceleration
+        acceleration += exAccel;
+        exAccel = sf::Vector2f(0.f, 0.f);
+        velocity = physics::acceleration(velocity, 0.01f, acceleration);
+        move(physics::displacement(velocity, 0.01f, acceleration)); //0.01 is length of physics loop
+        mtx.unlock();
+    }
+
+public:
+    int coltest(BoxCollider* col, float *groundArr)
+    {
+        sf::Vector2f pos = getPosition();
+        sf::Vector2f colPos = col->getPosition();
+        sf::Vector2f size = col->getSize();
+        if (pos.x - 6 <= 0 || pos.x + 6 >= 1920 || pos.y - 6 <= 0 || pos.y + 6 >= 1080)
+        {
+            return 0; //offscreen
+        }
+
+        if (pos.x + 6 >= colPos.x && pos.x - 6 <= colPos.x + size.x && pos.y + 6 >= colPos.y && pos.y - 6 <= colPos.y + size.y)
+        {
+            return 1; //direct hit
+        }
+
+        if (pos.y + 6 >= 1080 - groundArr[(int)round(pos.x)])
+        {
+            return 2;
+        }
+
+        else
+        {
+            return -1;
+        }
     }
 };
