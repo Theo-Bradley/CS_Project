@@ -121,7 +121,6 @@ class Truck : public Object
 public:
     sf::RectangleShape arm;
 
-private:
     float aimAngle = 0.f; //degrees
 
 public:
@@ -159,7 +158,7 @@ public:
     {
         aimAngle = angle;
         aimAngle = remainder(aimAngle, 360.f);
-        aimAngle = std::clamp(aimAngle, -90.f, 0.f);
+        aimAngle = clamp(aimAngle, -90.f, 0.f);
         arm.setRotation(angle);
     }
 
@@ -179,6 +178,65 @@ public:
         float radAngle = (aimAngle / 180) * PI;
         sf::Vector2f spawnPoint = sf::Vector2f(armPos.x + cos(radAngle) * 28.5f, armPos.y + sin(radAngle) * 28.5f); //35 is the arm length
         return spawnPoint;
+    }
+};
+
+class AITruck : public Truck
+{
+public:
+    AITruck(float Mass, sf::Vector2f Position, sf::Vector2f Size) : Truck(Mass, Position, Size)
+    {
+        arm.setOrigin(35, 13);
+        arm.setPosition(Position + sf::Vector2f(77, 15));
+    }
+
+public:
+    sf::Vector2f spawnPoint()
+    {
+        sf::Vector2f armPos = arm.getTransform().transformPoint(sf::Vector2f(35.f, 6.5f));
+        float radAngle = (aimAngle / 180) * PI;
+        sf::Vector2f spawnPoint = sf::Vector2f(armPos.x - cos(radAngle) * 28.5f, armPos.y - sin(radAngle) * 28.5f); //35 is the arm length
+        return spawnPoint;
+    }
+    
+public:
+    void move(sf::Vector2f amount)
+    {
+        Object::move(amount);
+        arm.move(amount + sf::Vector2f(77, 15));
+        cout << arm.getOrigin().x;
+    }
+
+public:
+    void setPosition(sf::Vector2f position)
+    {
+        Object::setPosition(position);
+        arm.setPosition(position + sf::Vector2f(77, 15));
+    }
+
+public:
+    void setPosition(float x, float y)
+    {
+        Object::setPosition(x, y);
+        arm.setPosition(x + 77, y + 15);
+    }
+
+public:
+    void setAngle(float angle)
+    {
+        aimAngle = angle;
+        aimAngle = remainder(aimAngle, 360.f);
+        aimAngle = clamp(aimAngle, 0.f, 90.f);
+        arm.setRotation(angle);
+    }
+
+public:
+    void rotateAngle(float amount)
+    {
+        aimAngle -= amount;
+        aimAngle = remainder(aimAngle, 360.f);
+        aimAngle = clamp(aimAngle, 0.f, 90.f);
+        arm.setRotation(aimAngle);
     }
 };
 

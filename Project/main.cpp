@@ -28,8 +28,6 @@ vector<Projectile*> projectiles;
 float groundArray[1922];
 sf::VertexArray groundObject;
 
-sf::CircleShape shape2(50.f);
-
 void generateGround()
 {
     float v;
@@ -101,7 +99,7 @@ sf::Vector2f resolveX(Object* a, Object* sender)
 }
 
 
-void physicsLoop()
+void physicsLoop(Truck* playerTruck, AITruck* aiTruck)
 {
     using namespace chrono_literals;
     sf::Clock physicsClock;
@@ -112,11 +110,11 @@ void physicsLoop()
         if (physicsClock.getElapsedTime().asMilliseconds() - offset >= targetTime && paused == false)
         {
             startTime = physicsClock.getElapsedTime().asMilliseconds() - offset;
-            for (Truck* truck : trucks) //iterate through every object
-            {
-                truck->updatePhysics(); //call the update physics on the current object
-                truck->setPosition(truck->getPosition().x, calcY(truck, truck->getPosition().x));
-            }
+            playerTruck->updatePhysics(); //call the update physics on the player Truck
+            playerTruck->setPosition(playerTruck->getPosition().x, calcY(playerTruck, playerTruck->getPosition().x));
+            aiTruck->updatePhysics(); //call the update physics on the AI truck
+            aiTruck->setPosition(aiTruck->getPosition().x, calcY(aiTruck, aiTruck->getPosition().x));
+
             if (colliders[0]->box.containsBox(&colliders[1]->box))
             {
                 colliders[0]->setPosition(resolveX(colliders[1], colliders[0]));
@@ -143,35 +141,30 @@ int main()
     sf::Clock gameClock; //create a new clock
     State state = State::MainMenu; //set the initial state to the main menu state
     paused = true; //pause physics loop while everything is set up
-    sf::CircleShape shape(6);
-    shape.setFillColor(sf::Color::Red); //set fill colour of the shapes
-    shape.setOrigin(6, 6);
-    shape2.setFillColor(sf::Color::Blue);
-    drawables.push_back(&shape2);
-    Object testObj(10.f, sf::Vector2f(660, 600), sf::Vector2f(256, 256)); //create an object with mass of 10kg
-    testObj.setColor(sf::Color::Green);
     Projectile* currentProjectile = nullptr;
-    //newObj.setPosition(sf::Vector2f(25.f, 25.f));
     sf::Texture groundTex;
     groundTex.loadFromFile(R"(C:\Users\Blade\Project\CS_Project\x64\BladeDebug\Assets\Sprites\groundTex.png)");
     sf::RenderStates groundState;
     groundState.texture = &groundTex;
     sf::Texture truckTex;
     truckTex.loadFromFile(R"(C:\Users\Blade\Project\CS_Project\Project\Assets\Sprites\truck.png)");
-    Truck truckTest(20.f, sf::Vector2f(120, 0), sf::Vector2f(75, 35));
-    truckTest.setTexture(truckTex, true);
+    Truck playerTruck(20.f, sf::Vector2f(120, 700), sf::Vector2f(75, 35));
+    playerTruck.setTexture(truckTex, true);
+    AITruck aiTruck(20.f, sf::Vector2f(1800, 700), sf::Vector2f(75, 35));
+    aiTruck.setTexture(truckTex, false);
+    aiTruck.setTextureRect(sf::IntRect(sf::Vector2i(80, 0), sf::Vector2i(-80, 43)));
     sf::Texture projectileTex;
     projectileTex.loadFromFile(R"(C:\Users\Blade\Project\CS_Project\x64\BladeDebug\Assets\Sprites\projectile.png)");
-    drawables.push_back(&truckTest);
-    drawables.push_back(&truckTest.arm);
-    drawables.push_back(&shape); //test circle should draw ontop of the arm
-    trucks.push_back(&truckTest);
-    colliders.push_back(&truckTest);
-    //objects.push_back(&testObj);
-    drawables.push_back(&testObj);
-    colliders.push_back(&testObj);
+    drawables.push_back(&playerTruck);
+    drawables.push_back(&playerTruck.arm);
+    trucks.push_back(&playerTruck);
+    colliders.push_back(&playerTruck);
+    drawables.push_back(&aiTruck);
+    drawables.push_back(&aiTruck.arm);
+    trucks.push_back(&aiTruck);
+    colliders.push_back(&aiTruck);
 
-    thread physicsThread(physicsLoop);
+    thread physicsThread(physicsLoop,&playerTruck, &aiTruck);
 
     while (window.isOpen())
     {
@@ -219,9 +212,8 @@ int main()
 
             if (sf::Keyboard::isKeyPressed(sf::Keyboard::Space) && jumpFlop == false) //space key pressed
             {
-                //truckTest.addAcceleration(physics::impulse(sf::Vector2f(+5000.f, 0.f), truckTest.getMass()));
-                sf::Vector2f endPoint = truckTest.spawnPoint();
-                sf::Vector2f startPoint = truckTest.arm.getTransform().transformPoint(0, 6.5);
+                sf::Vector2f endPoint = playerTruck.spawnPoint();
+                sf::Vector2f startPoint = playerTruck.arm.getTransform().transformPoint(35, 6.5); //transform point 35,6.5 for ai
                 currentProjectile = new Projectile(endPoint - startPoint, &projectileTex);
                 currentProjectile->setPosition(endPoint);
                 projectiles.push_back(currentProjectile);
@@ -235,12 +227,12 @@ int main()
 
             if (sf::Keyboard::isKeyPressed(sf::Keyboard::Key::Up))
             {
-                truckTest.rotateAngle(-0.1f * frameTime);
+                playerTruck.rotateAngle(-0.1f * frameTime);
             }
 
             if (sf::Keyboard::isKeyPressed(sf::Keyboard::Key::Down))
             {
-                truckTest.rotateAngle(+0.1f * frameTime);
+                playerTruck.rotateAngle(+0.1f * frameTime);
             }
 
             //cout << "Playing" << endl;
