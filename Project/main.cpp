@@ -7,8 +7,6 @@
 #include "Collider.h"
 #include "UI.h"
 
-# define PI           3.14159265358979323846f  /* pi */
-
 using namespace std;
 
 int frameTime = 0;
@@ -372,7 +370,7 @@ int main()
                     }
 
                     float top = distance * 9.81f;
-                    float bottom = pow(physics::acceleration(sf::Vector2f(0, 0), 0.1, sf::Vector2f(1400, 1400)).x, 2);
+                    float bottom = (float)pow(physics::acceleration(sf::Vector2f(0, 0), 0.1f, sf::Vector2f(1400, 1400)).x, 2);
 
                     float theta = asin(top / bottom);
                     theta *= 0.5;
@@ -470,8 +468,8 @@ int main()
             std::cout << "winloss" << endl;
             playDrawables = drawables;
             playUIables = uiables;
-            drawables.empty();
-            uiables.empty();
+            drawables.clear();
+            uiables.clear();
             break;
         }
         }

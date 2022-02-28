@@ -74,7 +74,7 @@ private:
 public:
     PowerBar()
     {
-        white.setFillColor(sf::Color::White);
+        white.setFillColor(sf::Color(200, 200, 200));
         white.setSize(sf::Vector2f(20, 400));
         yellow.setFillColor(sf::Color::Yellow);
         yellow.setSize(sf::Vector2f(20, 400));
@@ -127,8 +127,8 @@ public:
         font.loadFromFile(R"(C:\Users\Blade\Project\CS_Project\x64\BladeDebug\Assets\ariblk.ttf)");
         text.setFont(font);
         text.setCharacterSize(16);
-        //set fill colour black
-        text.setOutlineColor(sf::Color::White); //default fill colour is alredy white
+        text.setFillColor(sf::Color::Black);
+        text.setOutlineColor(sf::Color::White);
     }
 
 public:
@@ -161,12 +161,43 @@ public:
 public:
     sf::Vector2f getTextSize()
     {
-        return sf::Vector2f(16 * text.getString().getSize(), 16);
+        return sf::Vector2f(16.f * (int)text.getString().getSize(), 16.f);
     }
 
 public:
     void draw(sf::RenderTarget& target, sf::RenderStates states) const
     {
+        target.draw(text);
+    }
+};
+
+class Button : public Element
+{
+    sf::RectangleShape bgRect;
+    CentredText text;
+    sf::Font font;
+
+public:
+    Button(string str)
+    {
+        font.loadFromFile(R"(C:\Users\Blade\Project\CS_Project\x64\BladeDebug\Assets\ariblk.ttf)");
+        text.setText(str);
+        bgRect.setSize(sf::Vector2f(40, 20) + text.getTextSize());
+        bgRect.setFillColor(sf::Color::White);
+        text.setMiddlePos((bgRect.getSize() * 0.5f) + bgRect.getPosition());
+    }
+
+public:
+    void setPosition(sf::Vector2f position)
+    {
+        bgRect.setPosition(position);
+        text.setMiddlePos((bgRect.getSize() * 0.5f) + bgRect.getPosition());
+    }
+
+public:
+    void draw(sf::RenderTarget& target, sf::RenderStates states) const
+    {
+        target.draw(bgRect);
         target.draw(text);
     }
 };

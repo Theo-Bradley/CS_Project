@@ -1,6 +1,6 @@
 #include "Collider.h"
 #include <algorithm>
-# define PI           3.14159265358979323846  /* pi */
+# define PI           3.14159265358979323846f  /* pi */
 
 class Object : public sf::Sprite
 {
@@ -132,7 +132,7 @@ public:
         arm.setSize(sf::Vector2f(35, 13));
         arm.setPosition(Position + sf::Vector2f(3, 15));
         arm.setOrigin(0, 13);
-        arm.setFillColor(sf::Color::Green);
+        arm.setFillColor(sf::Color(85, 85, 85));
     }
 
 public:
@@ -203,6 +203,8 @@ public:
     AITruck(float Mass, sf::Vector2f Position, sf::Vector2f Size) : Truck(Mass, Position, Size)
     {
         arm.setOrigin(35, 13);
+        arm.setFillColor(arm.getFillColor() * sf::Color::Red);
+        sf::Sprite::setColor(sf::Color::Red);
         arm.setPosition(Position + sf::Vector2f(77, 15));
     }
 
