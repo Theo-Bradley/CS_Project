@@ -298,6 +298,7 @@
     <ClInclude Include="physics.h">
       <DeploymentContent>true</DeploymentContent>
     </ClInclude>
+    <ClInclude Include="UI.h" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">

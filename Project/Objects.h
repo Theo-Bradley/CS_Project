@@ -121,7 +121,10 @@ class Truck : public Object
 public:
     sf::RectangleShape arm;
 
+    float health = 100.f;
+
     float aimAngle = 0.f; //degrees
+    float shotPower = 0.f;
 
 public:
     Truck(float Mass, sf::Vector2f Position, sf::Vector2f Size) : Object(Mass, Position, Size)
@@ -130,6 +133,12 @@ public:
         arm.setPosition(Position + sf::Vector2f(3, 15));
         arm.setOrigin(0, 13);
         arm.setFillColor(sf::Color::Green);
+    }
+
+public:
+    void changeHealth(float amount)
+    {
+        health -= amount;
     }
 
 public:
@@ -151,6 +160,13 @@ public:
     {
         Object::move(amount);
         arm.move(amount);
+    }
+
+public:
+    void changePower(float power)
+    {
+        shotPower += power;
+        shotPower = clamp(shotPower, -500.f, 500.f);
     }
 
 public:
@@ -251,12 +267,12 @@ private:
     mutex mtx;
 
 public:
-    Projectile(sf::Vector2f trajectory, sf::Texture* tex)
+    Projectile(sf::Vector2f trajectory, float power, sf::Texture* tex)
     {
         mass = 5.f;
         setOrigin(6, 6);
         setTexture(*tex, true);
-        exAccel = normalise(trajectory) * 4000.f; //+- 500 from power
+        exAccel = normalise(trajectory) * (4000.f + power); //+- 500 from power
     }
 
 public:
