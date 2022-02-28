@@ -7,6 +7,8 @@
 #include "Collider.h"
 #include "UI.h"
 
+# define PI           3.14159265358979323846f  /* pi */
+
 using namespace std;
 
 int frameTime = 0;
@@ -26,8 +28,11 @@ vector<sf::Drawable*> drawables;
 vector<Element*> uiables;
 vector<Object*> colliders; //for box on box collision
 vector<Projectile*> projectiles;
+vector<Element*> playUIables;
+vector<sf::Drawable*> playDrawables;
 float groundArray[1922];
 sf::VertexArray groundObject;
+bool playerTurn = true;
 
 void generateGround()
 {
@@ -80,7 +85,6 @@ sf::Vector2f resolveX(Object* a, Object* sender)
         float leftDistance = a->box.getPosition().x + a->box.getSize().x + FLT_EPSILON;
         float rightDistance = a->box.getPosition().x - sender->box.getSize().x - FLT_EPSILON;
         newPos = (abs(sender->box.getPosition().x - leftDistance) < abs(sender->box.getPosition().x - rightDistance)) ? leftDistance : rightDistance;
-        cout << "Stationary object overlapping, position resolved.\n" << endl;
     }
 
     if (sender->getVelocity().x < 0) //left movement
@@ -116,9 +120,19 @@ void physicsLoop(Truck* playerTruck, AITruck* aiTruck)
             aiTruck->updatePhysics(); //call the update physics on the AI truck
             aiTruck->setPosition(aiTruck->getPosition().x, calcY(aiTruck, aiTruck->getPosition().x));
 
-            if (colliders[0]->box.containsBox(&colliders[1]->box))
+            if (playerTurn)
             {
-                colliders[0]->setPosition(resolveX(colliders[1], colliders[0]));
+                if (colliders[0]->box.containsBox(&colliders[1]->box))
+                {
+                    colliders[0]->setPosition(resolveX(colliders[1], colliders[0]));
+                }
+            }
+            if (!playerTurn)
+            {
+                if (colliders[1]->box.containsBox(&colliders[0]->box))
+                {
+                    colliders[1]->setPosition(resolveX(colliders[0], colliders[1]));
+                }
             }
             for (Projectile* projectile : projectiles)
             {
@@ -143,8 +157,13 @@ int main()
     State state = State::MainMenu; //set the initial state to the main menu state
     paused = true; //pause physics loop while everything is set up
     int winner = -1;
-    bool playerTurn = true;
+    int difficulty = 1;
+    bool shootFlop = true;
     Projectile* currentProjectile = nullptr;
+    sf::Texture backgroundTex;
+    backgroundTex.loadFromFile(R"(C:\Users\Blade\Project\CS_Project\x64\BladeDebug\Assets\Sprites\background.png)");
+    sf::Sprite backgroundSprite;
+    backgroundSprite.setTexture(backgroundTex, true);
     sf::Texture groundTex;
     groundTex.loadFromFile(R"(C:\Users\Blade\Project\CS_Project\x64\BladeDebug\Assets\Sprites\groundTex.png)");
     sf::RenderStates groundState;
@@ -199,13 +218,13 @@ int main()
         {
         case (State::MainMenu):
         {
-            cout << "Main Menu" << endl;
+            std::cout << "Main Menu" << endl;
             state = State::Setup; //switch to set state
             break;
         }
         case (State::Setup):
         {
-            cout << "Setup" << endl;
+            std::cout << "Setup" << endl;
 
             groundObject.resize(3842);
             groundObject.setPrimitiveType(sf::PrimitiveType::Lines);
@@ -214,6 +233,8 @@ int main()
             playerTruck.health = 100.f;
             aiTruck.health = 100.f;
             powerBar.setPercent(50.f);
+            playerHealthbar.setPercent(100.f);
+            aiHealthbar.setPercent(100.f);
 
             playerTruck.setPosition(sf::Vector2f(120, 700));
             aiTruck.setPosition(sf::Vector2f(1800, 700));
@@ -253,6 +274,18 @@ int main()
                 if (jumpFlop && !sf::Keyboard::isKeyPressed(sf::Keyboard::Space))
                     jumpFlop = false;
 
+                if (sf::Keyboard::isKeyPressed(sf::Keyboard::Key::A))
+                {
+                    playerTruck.move(sf::Vector2f(frameTime * -0.2f, 0.f));
+                    playerTruck.setPosition(playerTruck.getPosition().x, calcY(&playerTruck, playerTruck.getPosition().x));
+                }
+
+                if (sf::Keyboard::isKeyPressed(sf::Keyboard::Key::D))
+                {
+                    playerTruck.move(sf::Vector2f(frameTime * 0.2f, 0.f));
+                    playerTruck.setPosition(playerTruck.getPosition().x, calcY(&playerTruck, playerTruck.getPosition().x));
+                }
+
                 if (sf::Keyboard::isKeyPressed(sf::Keyboard::Key::Left))
                 {
                     playerTruck.rotateAngle(-0.1f * frameTime);
@@ -276,10 +309,8 @@ int main()
                 }
 
                 if (currentProjectile != nullptr)
-                {
-                    int s = currentProjectile->coltest(&aiTruck.box, groundArray);
-                    cout << s << endl;
-                    switch (s) //make a new one for ai truck's turn
+                {                    
+                    switch (currentProjectile->coltest(&aiTruck.box, groundArray)) //make a new one for ai truck's turn
                     {
                     case 0:
                         drawables.erase(drawables.begin());
@@ -310,6 +341,8 @@ int main()
                         delete currentProjectile;
                         break;
                     }
+
+                    jumpFlop = true;
                 }
             }
 
@@ -318,17 +351,46 @@ int main()
                 /*
                 * AI Code
                 */
-                sf::Vector2f endPoint = aiTruck.spawnPoint();
-                sf::Vector2f startPoint = aiTruck.arm.getTransform().transformPoint(35, 6.5f); //transform point 35,6.5 for ai
-                currentProjectile = new Projectile(endPoint - startPoint, aiTruck.shotPower, &projectileTex);
-                currentProjectile->setPosition(endPoint);
-                projectiles.push_back(currentProjectile);
-                drawables.insert(drawables.begin(), currentProjectile);
+                if (jumpFlop)
+                {
+                    float distance = abs(playerTruck.getPosition().x - aiTruck.getPosition().x);
+                    srand(gameClock.getElapsedTime().asMilliseconds());
+
+                    switch (difficulty)
+                    {
+                    case 1:
+                        distance += (rand() % 400) - 200;
+                        break;
+
+                    case 2:
+                        distance += (rand() % 200) - 100;
+                        break;
+
+                    case 3:
+                        distance += (rand() % 100) - 50;
+                        break;
+                    }
+
+                    float top = distance * 9.81f;
+                    float bottom = pow(physics::acceleration(sf::Vector2f(0, 0), 0.1, sf::Vector2f(1400, 1400)).x, 2);
+
+                    float theta = asin(top / bottom);
+                    theta *= 0.5;
+
+                    aiTruck.setAngle((theta / PI) * 180.f);
+
+                    sf::Vector2f endPoint = aiTruck.spawnPoint();
+                    sf::Vector2f startPoint = aiTruck.arm.getTransform().transformPoint(35, 6.5f); //transform point 35,6.5 for ai
+                    currentProjectile = new Projectile(endPoint - startPoint, 500.f, &projectileTex);
+                    currentProjectile->setPosition(endPoint);
+                    projectiles.push_back(currentProjectile);
+                    drawables.insert(drawables.begin(), currentProjectile);
+                    jumpFlop = false;
+                }
 
                 if (currentProjectile != nullptr)
                 {
-                    int s = currentProjectile->coltest(&playerTruck.box, groundArray);
-                    switch (s) //make a new one for ai truck's turn
+                    switch (currentProjectile->coltest(&playerTruck.box, groundArray)) //make a new one for ai truck's turn
                     {
                     case 0:
                         drawables.erase(drawables.begin());
@@ -350,7 +412,7 @@ int main()
 
                     case 2:
                         float distance = abs(aiTruck.box.getPosition().x - (aiTruck.box.getSize().x / 0.5f)) - (playerTruck.box.getPosition().x - (playerTruck.box.getSize().x * 0.5f));
-                        playerTruck.changeHealth((1 / distance) * 20000.f);
+                        playerTruck.changeHealth((1 / distance) * 5000.f * difficulty);
                         aiHealthbar.setPercent(playerTruck.health);
                         drawables.erase(drawables.begin());
                         projectiles.pop_back();
@@ -361,6 +423,7 @@ int main()
                     }
                 }
             }
+            playerHealthbar.setPercent(playerTruck.health);
 
             playerNameText.setMiddlePos(playerTruck.getPosition() + sf::Vector2f(40, -70));
             playerHealthbar.setPosition(sf::Vector2f(playerTruck.getPosition() + sf::Vector2f(-10, -50)));
@@ -398,18 +461,23 @@ int main()
             if (escapeFlop == true && !sf::Keyboard::isKeyPressed(sf::Keyboard::Escape)) //if the escape key is not pressed, reset the flop
                 escapeFlop = false;
             
-            cout << "Paused" << endl;
+            std::cout << "Paused" << endl;
             break;
         }
 
         case (State::WinLoss):
         {
-            cout << "winloss" << endl;
+            std::cout << "winloss" << endl;
+            playDrawables = drawables;
+            playUIables = uiables;
+            drawables.empty();
+            uiables.empty();
             break;
         }
         }
 
         window.clear(); //clear back buffer
+        window.draw(backgroundSprite);
         window.draw(groundObject, groundState);
         for (int i = 0; i < drawables.size(); i++)
         {
@@ -420,14 +488,12 @@ int main()
         {
             window.draw(*element);
         }
-        
-        //uiables[0]->draw(window, groundState);
         window.display(); //swap forward and back buffers
         frameTime = gameClock.getElapsedTime().asMilliseconds() - startTime; //calculate frametime
         //cout << frameTime << "ms" << endl; //print the frame 
     }
 
-    cout << "quitting" << endl;
+    std::cout << "quitting" << endl;
     threadValid = false; //tell physics thread to stop looping
     physicsThread.join(); //wait until physicsThread finishes
     return 0;

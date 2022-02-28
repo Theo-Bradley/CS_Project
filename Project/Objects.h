@@ -191,7 +191,7 @@ public:
     sf::Vector2f spawnPoint()
     {
         sf::Vector2f armPos = arm.getTransform().transformPoint(sf::Vector2f(0.f, 6.5f));
-        float radAngle = (aimAngle / 180) * PI;
+        float radAngle = (aimAngle / 180.f) * PI;
         sf::Vector2f spawnPoint = sf::Vector2f(armPos.x + cos(radAngle) * 28.5f, armPos.y + sin(radAngle) * 28.5f); //35 is the arm length
         return spawnPoint;
     }
@@ -210,7 +210,7 @@ public:
     sf::Vector2f spawnPoint()
     {
         sf::Vector2f armPos = arm.getTransform().transformPoint(sf::Vector2f(35.f, 6.5f));
-        float radAngle = (aimAngle / 180) * PI;
+        float radAngle = (aimAngle / 180.f) * PI;
         sf::Vector2f spawnPoint = sf::Vector2f(armPos.x - cos(radAngle) * 28.5f, armPos.y - sin(radAngle) * 28.5f); //35 is the arm length
         return spawnPoint;
     }
@@ -220,7 +220,6 @@ public:
     {
         Object::move(amount);
         arm.move(amount + sf::Vector2f(77, 15));
-        cout << arm.getOrigin().x;
     }
 
 public:

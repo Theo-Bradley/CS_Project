@@ -1,4 +1,6 @@
 Licences:
 CC4.0 - https://creativecommons.org/licenses/by/4.0/legalcode
+GPL3.0 - http://www.gnu.org/licenses/gpl-3.0.html
 Textures:
 Ground Texture by Santoniche under CC4.0 - https://opengameart.org/content/ground-1
+Background Textures by OlegKrylov under CC4.0 and GPL3.0

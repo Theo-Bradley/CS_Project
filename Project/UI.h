@@ -155,7 +155,13 @@ public:
 public:
     void setMiddlePos(sf::Vector2f pos)
     {
-        setPosition(sf::Vector2f(pos.x - (text.getString().getSize() * 16)/2, pos.y - 7.5));
+        setPosition(sf::Vector2f(pos.x - (text.getString().getSize() * 16.f)/2.f, pos.y - 7.5f));
+    }
+
+public:
+    sf::Vector2f getTextSize()
+    {
+        return sf::Vector2f(16 * text.getString().getSize(), 16);
     }
 
 public:
