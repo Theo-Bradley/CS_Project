@@ -157,6 +157,8 @@ int main()
     int winner = -1;
     int difficulty = 1;
     bool shootFlop = true;
+    bool winlossFlop = true;
+    bool mainMenuFlop = true;
     Projectile* currentProjectile = nullptr;
     sf::Texture backgroundTex;
     backgroundTex.loadFromFile(R"(C:\Users\Blade\Project\CS_Project\x64\BladeDebug\Assets\Sprites\background.png)");
@@ -175,30 +177,25 @@ int main()
     aiTruck.setTextureRect(sf::IntRect(sf::Vector2i(80, 0), sf::Vector2i(-80, 43)));
     sf::Texture projectileTex;
     projectileTex.loadFromFile(R"(C:\Users\Blade\Project\CS_Project\x64\BladeDebug\Assets\Sprites\projectile.png)");
-    drawables.push_back(&playerTruck);
-    drawables.push_back(&playerTruck.arm);
-    colliders.push_back(&playerTruck);
-    drawables.push_back(&aiTruck);
-    drawables.push_back(&aiTruck.arm);
-    colliders.push_back(&aiTruck);
 
-    CentredText playerNameText;
+    CentredText playerNameText = CentredText(16);
     playerNameText.setText("Foo");
-    uiables.push_back(&playerNameText);
     Healthbar playerHealthbar;
-    uiables.push_back(&playerHealthbar);
     playerHealthbar.setPercent(100.f);
-
-    CentredText aiNameText;
+    CentredText aiNameText = CentredText(16);
     aiNameText.setText("AI");
-    uiables.push_back(&aiNameText);
     Healthbar aiHealthbar;
-    uiables.push_back(&aiHealthbar);
     aiHealthbar.setPercent(100.f);
     PowerBar powerBar;
     powerBar.setPosition(sf::Vector2f(1880, 240));
-    uiables.push_back(&powerBar);
     powerBar.setPercent(50.f);
+
+    //winloss
+    CentredText t1 = CentredText(80);
+    CentredText t2 = CentredText(80);
+    CentredText t3 = CentredText(90);
+    Button b1("PLAY");
+    Button b2("QUIT");
 
     thread physicsThread(physicsLoop,&playerTruck, &aiTruck);
 
@@ -216,8 +213,50 @@ int main()
         {
         case (State::MainMenu):
         {
-            std::cout << "Main Menu" << endl;
-            state = State::Setup; //switch to set state
+            if (mainMenuFlop)
+            {            
+                std::cout << "Main Menu" << endl;
+                t3.setText("T.R.U.C.K.S");
+                t3.setMiddlePos(sf::Vector2f(960, 150));
+                b1.setPosition(sf::Vector2f(960 - b1.getWidth() / 2, 500));
+                b2.setPosition(sf::Vector2f(960 - b1.getWidth() / 2, 680));
+
+                uiables.push_back(&t3);
+                uiables.push_back(&b1);
+                uiables.push_back(&b2);
+
+                mainMenuFlop = false;
+            }
+
+            if (sf::Mouse::isButtonPressed(sf::Mouse::Button::Left))
+            {
+                sf::Vector2i mousePos = sf::Mouse::getPosition(window);
+                if (b2.contains(mousePos))
+                {
+                    window.close();
+                }
+
+                if (b1.contains(mousePos))
+                {
+                    drawables.push_back(&playerTruck);
+                    drawables.push_back(&playerTruck.arm);
+                    colliders.push_back(&playerTruck);
+                    drawables.push_back(&aiTruck);
+                    drawables.push_back(&aiTruck.arm);
+                    colliders.push_back(&aiTruck);
+
+                    uiables.clear();
+                    uiables.push_back(&playerNameText);
+                    uiables.push_back(&playerHealthbar);
+                    uiables.push_back(&aiNameText);
+                    uiables.push_back(&aiHealthbar);
+                    uiables.push_back(&powerBar);
+
+                    state = State::Setup;
+                }
+            }
+
+            //state = State::Setup; //switch to set state
             break;
         }
         case (State::Setup):
@@ -236,8 +275,10 @@ int main()
 
             playerTruck.setPosition(sf::Vector2f(120, 700));
             aiTruck.setPosition(sf::Vector2f(1800, 700));
+            playerTruck.setVelocity(sf::Vector2f(0, 0));
 
             state = State::PlayerTurn; //switch to play state
+            cout << "Playing" << endl;
             paused = false;//let execution of physics loop continue
             break;
         }
@@ -248,6 +289,7 @@ int main()
             {
                 pausedTime = gameClock.getElapsedTime().asMilliseconds(); //start recording the paused time
                 paused = true; //pause physics loop
+                cout << "Paused" << endl;
                 state = State::Paused; //change state
                 escapeFlop = true;
             }
@@ -400,7 +442,7 @@ int main()
 
                     case 1:
                         playerTruck.changeHealth(30.f);
-                        aiHealthbar.setPercent(playerTruck.health);
+                        playerHealthbar.setPercent(playerTruck.health);
                         drawables.erase(drawables.begin());
                         projectiles.pop_back();
                         playerTurn = true;
@@ -411,7 +453,7 @@ int main()
                     case 2:
                         float distance = abs(aiTruck.box.getPosition().x - (aiTruck.box.getSize().x / 0.5f)) - (playerTruck.box.getPosition().x - (playerTruck.box.getSize().x * 0.5f));
                         playerTruck.changeHealth((1 / distance) * 5000.f * difficulty);
-                        aiHealthbar.setPercent(playerTruck.health);
+                        playerHealthbar.setPercent(playerTruck.health);
                         drawables.erase(drawables.begin());
                         projectiles.pop_back();
                         playerTurn = true;
@@ -432,12 +474,14 @@ int main()
             if (playerTruck.health <= 0)
             {
                 winner = 1; //ai won
+                winlossFlop = true;
                 state = State::WinLoss;
             }
 
             if (aiTruck.health <= 0)
             {
                 winner = 0; //player won
+                winlossFlop = true;
                 state = State::WinLoss;
             }
 
@@ -449,7 +493,7 @@ int main()
             //to do: set drawables to paused drawables
             if (paused == true && escapeFlop == false && sf::Keyboard::isKeyPressed(sf::Keyboard::Escape)) //if escape is pressed and allowed
             {
-                //to do: set drawables back to gameplay state
+                cout << "Unpaused" << endl;
                 state = State::PlayerTurn; //change the state
                 paused = false; //tell physics loop to continue
                 escapeFlop = true;
@@ -458,18 +502,54 @@ int main()
 
             if (escapeFlop == true && !sf::Keyboard::isKeyPressed(sf::Keyboard::Escape)) //if the escape key is not pressed, reset the flop
                 escapeFlop = false;
-            
-            std::cout << "Paused" << endl;
+
             break;
         }
 
         case (State::WinLoss):
         {
             std::cout << "winloss" << endl;
-            playDrawables = drawables;
-            playUIables = uiables;
-            drawables.clear();
-            uiables.clear();
+            if (winlossFlop) //only execute code once:
+            {
+                playDrawables = drawables;
+                playUIables = uiables;
+                drawables.clear();
+                uiables.clear();
+                if (winner == 0)
+                    t1.setText("YOU WON!");
+                else
+                    t1.setText("YOU LOST!");
+                t2.setText("Play Again?");
+
+                t1.setMiddlePos(sf::Vector2f(960, 150));
+                t2.setMiddlePos(sf::Vector2f(960, 350));
+                b1.setPosition(sf::Vector2f(960 - b1.getWidth()/2, 500));
+                b2.setPosition(sf::Vector2f(960 - b1.getWidth()/2, 680));
+
+                uiables.push_back(&t1);
+                uiables.push_back(&t2);
+                uiables.push_back(&b1);
+                uiables.push_back(&b2);
+
+                winlossFlop = false;
+            }
+
+            if (sf::Mouse::isButtonPressed(sf::Mouse::Button::Left))
+            {
+                sf::Vector2i mousePos = sf::Mouse::getPosition(window);
+                if (b2.contains(mousePos))
+                {
+                    window.close();
+                }
+
+                if (b1.contains(mousePos))
+                {
+                    drawables = playDrawables;
+                    uiables = playUIables;
+                    state = State::Setup;
+                }
+            }
+
             break;
         }
         }

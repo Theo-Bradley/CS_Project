@@ -122,11 +122,11 @@ private:
     sf::Vector2f middlePos;
 
 public:
-    CentredText()
+    CentredText(int size)
     {
         font.loadFromFile(R"(C:\Users\Blade\Project\CS_Project\x64\BladeDebug\Assets\ariblk.ttf)");
         text.setFont(font);
-        text.setCharacterSize(16);
+        text.setCharacterSize(size);
         text.setFillColor(sf::Color::Black);
         text.setOutlineColor(sf::Color::White);
     }
@@ -135,7 +135,7 @@ public:
     void setText(string newText)
     {
         text.setString(newText);
-        setPosition(sf::Vector2f(middlePos.x - newText.length() * (16/2), text.getPosition().y));
+        setPosition(sf::Vector2f(text.getGlobalBounds().width / 2.f, text.getPosition().y));
     }
 
 public:
@@ -155,13 +155,20 @@ public:
 public:
     void setMiddlePos(sf::Vector2f pos)
     {
-        setPosition(sf::Vector2f(pos.x - (text.getString().getSize() * 16.f)/2.f, pos.y - 7.5f));
+        sf::FloatRect globalBounds = text.getGlobalBounds();
+        setPosition(sf::Vector2f(pos.x - (globalBounds.width)/2.f, pos.y - (globalBounds.height)/2.f));
     }
 
 public:
-    sf::Vector2f getTextSize()
+    float getWidth()
     {
-        return sf::Vector2f(16.f * (int)text.getString().getSize(), 16.f);
+        return text.getGlobalBounds().width;
+    }
+
+public:
+    float getHeight()
+    {
+        return text.getLocalBounds().height;
     }
 
 public:
@@ -174,24 +181,42 @@ public:
 class Button : public Element
 {
     sf::RectangleShape bgRect;
-    CentredText text;
-    sf::Font font;
+    CentredText text= CentredText(60);
 
 public:
     Button(string str)
     {
-        font.loadFromFile(R"(C:\Users\Blade\Project\CS_Project\x64\BladeDebug\Assets\ariblk.ttf)");
         text.setText(str);
-        bgRect.setSize(sf::Vector2f(40, 20) + text.getTextSize());
+        bgRect.setSize(sf::Vector2f(80 + text.getWidth(), 40 + text.getHeight()));
         bgRect.setFillColor(sf::Color::White);
-        text.setMiddlePos((bgRect.getSize() * 0.5f) + bgRect.getPosition());
+        text.setMiddlePos(sf::Vector2f(bgRect.getPosition().x + (bgRect.getSize().x * 0.5f), bgRect.getPosition().y - 100 + (bgRect.getSize().y * 0.3f))); //y is * by 0.3f to kep play and quit buttons centred-ish
+    }
+
+public:
+    bool contains(sf::Vector2i position)
+    {
+        sf::Vector2f rectPos = bgRect.getPosition();
+        sf::Vector2f size = bgRect.getSize();
+        if (position.x >= rectPos.x && position.x <= rectPos.x + size.x && position.y >= rectPos.y && position.y <= rectPos.y + size.y)
+        {
+            return true;
+        }
+        return false;
     }
 
 public:
     void setPosition(sf::Vector2f position)
     {
         bgRect.setPosition(position);
-        text.setMiddlePos((bgRect.getSize() * 0.5f) + bgRect.getPosition());
+        //text.setMiddlePos((bgRect.getSize() * 0.5f) + bgRect.getPosition());
+        text.setMiddlePos(sf::Vector2f(bgRect.getPosition().x + (bgRect.getSize().x * 0.5f), bgRect.getPosition().y + (bgRect.getSize().y * 0.3f))); //y size is * 0.3f to keep play and quit buttons centred
+
+    }
+
+public:
+    float getWidth()
+    {
+        return bgRect.getLocalBounds().width;
     }
 
 public:
