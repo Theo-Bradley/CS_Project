@@ -227,6 +227,124 @@ public:
     }
 };
 
+class TextBox : public Element
+{
+    sf::Text uiText;
+    sf::Font font;
+    sf::Text label;
+    string text;
+    sf::RectangleShape bgRect;
+
+public:
+    TextBox()
+    {
+        font.loadFromFile(R"(C:\Users\Blade\Project\CS_Project\x64\BladeDebug\Assets\ariblk.ttf)");
+        uiText.setFont(font);
+        uiText.setCharacterSize(25);
+        label.setFont(font);
+        label.setCharacterSize(25);
+        label.setString("Username:");
+        label.setFillColor(sf::Color::Black);
+        bgRect.setFillColor(sf::Color::Red);
+        bgRect.setSize(sf::Vector2f(200, 50));
+    }
+
+public:
+    bool valid(char c)
+    {
+        bool isValid = true;
+        string allowedChars = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789 ";
+
+        if (text.length() + 1 > 6)
+        {
+            isValid = false;
+        }
+        else
+        {
+            if (allowedChars.find(c) == string::npos)
+            {
+                isValid = false;
+            }
+
+            else
+            {
+                appendString(c);
+            }
+        }
+
+        if (text.length() < 3)
+            isValid = false;
+
+        return isValid;
+    }
+
+public:
+    void updateColour(bool valid)
+    {
+        if (valid)
+            bgRect.setFillColor(sf::Color::Green);
+        else
+            bgRect.setFillColor(sf::Color::Red);
+    }
+
+public:
+    bool isValid()
+    {
+        if (bgRect.getFillColor() == sf::Color::Green)
+            return true;
+        else
+            return false;
+    }
+
+public:
+    bool popBack()
+    {
+        if (text.length() <= 0)
+            return false;
+        text.pop_back();
+        uiText.setString(text);
+        if (text.length() < 3)
+            return false;
+        return true;
+    }
+
+public:
+    void setPosition(sf::Vector2f position)
+    {
+        bgRect.setPosition(position);
+        uiText.setPosition(position + sf::Vector2f(10, 10));
+        label.setPosition(position - sf::Vector2f(160, -10));
+    }
+
+public:
+    void appendString(string str)
+    {
+        text += str;
+        uiText.setString(str);
+    }
+
+public:
+    void appendString(char c)
+    {
+        text += c;
+        uiText.setString(text);
+    }
+
+public:
+    string getText()
+    {
+        return text;
+    }
+
+public:
+    void draw(sf::RenderTarget& target, sf::RenderStates states) const
+    {
+        target.draw(bgRect);
+        target.draw(label);
+        target.draw(uiText);
+    }
+};
+
 class foo : public Element //example class
 {
 public:

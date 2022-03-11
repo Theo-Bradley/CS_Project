@@ -196,6 +196,7 @@ int main()
     CentredText t3 = CentredText(90);
     Button b1("PLAY");
     Button b2("QUIT");
+    TextBox tb;
 
     thread physicsThread(physicsLoop,&playerTruck, &aiTruck);
 
@@ -207,6 +208,17 @@ int main()
         {
             if (event.type == sf::Event::Closed)
                 window.close();
+
+            if (event.type == sf::Event::TextEntered && state == State::MainMenu)
+            {
+                if (event.text.unicode == 8) //backspace pressed
+                {
+                    tb.updateColour(tb.popBack());
+                }
+            }
+
+            if (event.type == sf::Event::TextEntered && state == State::MainMenu && event.text.unicode > 27 && event.text.unicode < 123)
+                tb.updateColour(tb.valid(static_cast<char>(event.text.unicode)));
         }
 
         switch (state)
@@ -218,18 +230,21 @@ int main()
                 std::cout << "Main Menu" << endl;
                 t3.setText("T.R.U.C.K.S");
                 t3.setMiddlePos(sf::Vector2f(960, 150));
-                b1.setPosition(sf::Vector2f(960 - b1.getWidth() / 2, 500));
-                b2.setPosition(sf::Vector2f(960 - b1.getWidth() / 2, 680));
+                b1.setPosition(sf::Vector2f(960 - b1.getWidth() / 2, 580));
+                b2.setPosition(sf::Vector2f(960 - b1.getWidth() / 2, 760));
+                tb.setPosition(sf::Vector2f(860, 460));
 
                 uiables.push_back(&t3);
                 uiables.push_back(&b1);
                 uiables.push_back(&b2);
+                uiables.push_back(&tb);
 
                 mainMenuFlop = false;
             }
 
             if (sf::Mouse::isButtonPressed(sf::Mouse::Button::Left))
             {
+                bool isValid = tb.isValid();
                 sf::Vector2i mousePos = sf::Mouse::getPosition(window);
                 if (b2.contains(mousePos))
                 {
@@ -238,21 +253,26 @@ int main()
 
                 if (b1.contains(mousePos))
                 {
-                    drawables.push_back(&playerTruck);
-                    drawables.push_back(&playerTruck.arm);
-                    colliders.push_back(&playerTruck);
-                    drawables.push_back(&aiTruck);
-                    drawables.push_back(&aiTruck.arm);
-                    colliders.push_back(&aiTruck);
+                    if (isValid)
+                    {
+                        drawables.push_back(&playerTruck);
+                        drawables.push_back(&playerTruck.arm);
+                        colliders.push_back(&playerTruck);
+                        drawables.push_back(&aiTruck);
+                        drawables.push_back(&aiTruck.arm);
+                        colliders.push_back(&aiTruck);
 
-                    uiables.clear();
-                    uiables.push_back(&playerNameText);
-                    uiables.push_back(&playerHealthbar);
-                    uiables.push_back(&aiNameText);
-                    uiables.push_back(&aiHealthbar);
-                    uiables.push_back(&powerBar);
+                        uiables.clear();
+                        uiables.push_back(&playerNameText);
+                        uiables.push_back(&playerHealthbar);
+                        uiables.push_back(&aiNameText);
+                        uiables.push_back(&aiHealthbar);
+                        uiables.push_back(&powerBar);
 
-                    state = State::Setup;
+                        playerNameText.setText(tb.getText());
+
+                        state = State::Setup;
+                    }
                 }
             }
 
