@@ -178,6 +178,55 @@ public:
     }
 };
 
+class Stars : public Element
+{
+private:
+    unsigned int count;
+    sf::Texture starTex;
+    sf::Sprite star1;
+    sf::Sprite star2;
+    sf::Sprite star3;
+
+public:
+    Stars(unsigned int number)
+    {
+        count = number;
+        starTex.loadFromFile(R"(C:\Users\Blade\Project\CS_Project\x64\BladeDebug\Assets\Sprites\Star.png)");
+        star1.setTexture(starTex, true);
+        star2.setTexture(starTex, true);
+        star3.setTexture(starTex, true);
+    }
+
+public:
+    void move(sf::Vector2f amount)
+    {
+        star1.move(amount);
+        star2.move(amount + sf::Vector2f(20, 0));
+        star3.move(amount + sf::Vector2f(40, 0));
+    }
+
+public:
+    void setPosition(sf::Vector2f pos)
+    {
+        star1.setPosition(pos);
+        star2.setPosition(pos + sf::Vector2f(20, 0));
+        star3.setPosition(pos + sf::Vector2f(40, 0));
+    }
+
+public:
+    void draw(sf::RenderTarget& target, sf::RenderStates states) const
+    {
+        if (count >= 1)
+            target.draw(star1);
+
+        if (count >= 2)
+            target.draw(star2);
+
+        if (count >= 3)
+            target.draw(star3);
+    }
+};
+
 class Button : public Element
 {
     sf::RectangleShape bgRect;
@@ -202,6 +251,12 @@ public:
             return true;
         }
         return false;
+    }
+
+public:
+    void setColour(sf::Color col)
+    {
+        bgRect.setFillColor(col);
     }
 
 public:

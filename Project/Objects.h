@@ -304,7 +304,7 @@ public:
         sf::Vector2f pos = getPosition();
         sf::Vector2f colPos = col->getPosition();
         sf::Vector2f size = col->getSize();
-        if (pos.x - 6 <= 0 || pos.x + 6 >= 1920 || pos.y - 6 <= 0 || pos.y + 6 >= 1080)
+        if (pos.x - 6 <= 0 || pos.x + 6 >= 1920 || pos.y + 6 >= 1080)
         {
             return 0; //offscreen
         }

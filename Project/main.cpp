@@ -150,8 +150,8 @@ void physicsLoop(Truck* playerTruck, AITruck* aiTruck)
 int main()
 {
     sf::RenderWindow window(sf::VideoMode(1920, 1080), "Game Window", sf::Style::Default); //create a new 1080p window with title game window and not a fullscreen style
-    window.setVerticalSyncEnabled(true); //enables vSync if possible
-    sf::Clock gameClock; //create a new clock
+    window.setVerticalSyncEnabled(false); //enables vSync if possible
+    sf::Clock* gameClock = new sf::Clock; //create a new clock
     State state = State::MainMenu; //set the initial state to the main menu state
     paused = true; //pause physics loop while everything is set up
     int winner = -1;
@@ -175,6 +175,7 @@ int main()
     AITruck aiTruck(20.f, sf::Vector2f(1800, 700), sf::Vector2f(75, 35));
     aiTruck.setTexture(truckTex, false);
     aiTruck.setTextureRect(sf::IntRect(sf::Vector2i(80, 0), sf::Vector2i(-80, 43)));
+    Stars* aiStars = nullptr;
     sf::Texture projectileTex;
     projectileTex.loadFromFile(R"(C:\Users\Blade\Project\CS_Project\x64\BladeDebug\Assets\Sprites\projectile.png)");
 
@@ -190,19 +191,23 @@ int main()
     powerBar.setPosition(sf::Vector2f(1880, 240));
     powerBar.setPercent(50.f);
 
-    //winloss
+    //winloss + menu
     CentredText t1 = CentredText(80);
     CentredText t2 = CentredText(80);
     CentredText t3 = CentredText(90);
     Button b1("PLAY");
     Button b2("QUIT");
     TextBox tb;
+    Button b3("E");
+    Button b4("M");
+    Button b5("H");
+    CentredText t4 = CentredText(50);
 
     thread physicsThread(physicsLoop,&playerTruck, &aiTruck);
 
     while (window.isOpen())
     {
-        startTime = gameClock.getElapsedTime().asMilliseconds(); //initial time on each frame
+        startTime = gameClock->getElapsedTime().asMilliseconds(); //initial time on each frame
         sf::Event event;
         while (window.pollEvent(event))
         {
@@ -230,14 +235,25 @@ int main()
                 std::cout << "Main Menu" << endl;
                 t3.setText("T.R.U.C.K.S");
                 t3.setMiddlePos(sf::Vector2f(960, 150));
-                b1.setPosition(sf::Vector2f(960 - b1.getWidth() / 2, 580));
-                b2.setPosition(sf::Vector2f(960 - b1.getWidth() / 2, 760));
-                tb.setPosition(sf::Vector2f(860, 460));
+                b1.setPosition(sf::Vector2f(960 - b1.getWidth() / 2, 730));
+                b2.setPosition(sf::Vector2f(960 - b1.getWidth() / 2, 860));
+                tb.setPosition(sf::Vector2f(860, 400));
+
+                t4.setText("Difficulty:");
+                t4.setMiddlePos(sf::Vector2f(880, 540));
+                b3.setPosition(sf::Vector2f(960 - (b3.getWidth() * 4) / 2, 600));
+                b4.setPosition(sf::Vector2f(960 - b4.getWidth() / 2, 600));
+                b5.setPosition(sf::Vector2f(960 + (b5.getWidth()), 600));
+                b3.setColour(sf::Color::Green);
 
                 uiables.push_back(&t3);
                 uiables.push_back(&b1);
                 uiables.push_back(&b2);
                 uiables.push_back(&tb);
+                uiables.push_back(&b3);
+                uiables.push_back(&b4);
+                uiables.push_back(&b5);
+                uiables.push_back(&t4);
 
                 mainMenuFlop = false;
             }
@@ -271,8 +287,35 @@ int main()
 
                         playerNameText.setText(tb.getText());
 
+                        aiStars = new Stars(difficulty);
+                        uiables.push_back(aiStars);
+
                         state = State::Setup;
                     }
+                }
+
+                if (b3.contains(mousePos))
+                {
+                    b3.setColour(sf::Color::Green);
+                    b4.setColour(sf::Color::White);
+                    b5.setColour(sf::Color::White);
+                    difficulty = 1;
+                }
+
+                if (b4.contains(mousePos))
+                {
+                    b4.setColour(sf::Color::Green);
+                    b3.setColour(sf::Color::White);
+                    b5.setColour(sf::Color::White);
+                    difficulty = 2;
+                }
+
+                if (b5.contains(mousePos))
+                {
+                    b5.setColour(sf::Color::Green);
+                    b4.setColour(sf::Color::White);
+                    b3.setColour(sf::Color::White);
+                    difficulty = 3;
                 }
             }
 
@@ -307,7 +350,7 @@ int main()
         {
             if (paused == false && escapeFlop == false && sf::Keyboard::isKeyPressed(sf::Keyboard::Escape)) //if escape is pressed and allowed
             {
-                pausedTime = gameClock.getElapsedTime().asMilliseconds(); //start recording the paused time
+                pausedTime = gameClock->getElapsedTime().asMilliseconds(); //start recording the paused time
                 paused = true; //pause physics loop
                 cout << "Paused" << endl;
                 state = State::Paused; //change state
@@ -342,8 +385,11 @@ int main()
 
                 if (sf::Keyboard::isKeyPressed(sf::Keyboard::Key::D))
                 {
-                    playerTruck.move(sf::Vector2f(frameTime * 0.2f, 0.f));
-                    playerTruck.setPosition(playerTruck.getPosition().x, calcY(&playerTruck, playerTruck.getPosition().x));
+                    if (playerTruck.getPosition().x + playerTruck.box.getSize().x < 1920 / 2)
+                    {
+                        playerTruck.move(sf::Vector2f(frameTime * 0.2f, 0.f));
+                        playerTruck.setPosition(playerTruck.getPosition().x, calcY(&playerTruck, playerTruck.getPosition().x));
+                    }
                 }
 
                 if (sf::Keyboard::isKeyPressed(sf::Keyboard::Key::Left))
@@ -414,20 +460,23 @@ int main()
                 if (jumpFlop)
                 {
                     float distance = abs(playerTruck.getPosition().x - aiTruck.getPosition().x);
-                    srand(gameClock.getElapsedTime().asMilliseconds());
+                    srand(gameClock->getElapsedTime().asMilliseconds());
 
                     switch (difficulty)
                     {
                     case 1:
                         distance += (rand() % 400) - 200;
+                        //cout << "easy" << endl;
                         break;
 
                     case 2:
                         distance += (rand() % 200) - 100;
+                        //cout << "medium" << endl;
                         break;
 
                     case 3:
                         distance += (rand() % 100) - 50;
+                        //cout << "hard" << endl;
                         break;
                     }
 
@@ -488,8 +537,9 @@ int main()
             playerNameText.setMiddlePos(playerTruck.getPosition() + sf::Vector2f(40, -70));
             playerHealthbar.setPosition(sf::Vector2f(playerTruck.getPosition() + sf::Vector2f(-10, -50)));
 
-            aiNameText.setMiddlePos(aiTruck.getPosition() + sf::Vector2f(40, -70));
+            aiNameText.setMiddlePos(aiTruck.getPosition() + sf::Vector2f(0, -70));
             aiHealthbar.setPosition(sf::Vector2f(aiTruck.getPosition() + sf::Vector2f(-10, -50)));
+            aiStars->setPosition(aiTruck.getPosition() + sf::Vector2f(30, -75));
 
             if (playerTruck.health <= 0)
             {
@@ -517,7 +567,7 @@ int main()
                 state = State::PlayerTurn; //change the state
                 paused = false; //tell physics loop to continue
                 escapeFlop = true;
-                offset += gameClock.getElapsedTime().asMilliseconds() - pausedTime; //apply offset to physics clock
+                offset += gameClock->getElapsedTime().asMilliseconds() - pausedTime; //apply offset to physics clock
             }
 
             if (escapeFlop == true && !sf::Keyboard::isKeyPressed(sf::Keyboard::Escape)) //if the escape key is not pressed, reset the flop
@@ -528,9 +578,9 @@ int main()
 
         case (State::WinLoss):
         {
-            std::cout << "winloss" << endl;
             if (winlossFlop) //only execute code once:
             {
+                std::cout << "winloss" << endl;
                 playDrawables = drawables;
                 playUIables = uiables;
                 drawables.clear();
@@ -587,7 +637,7 @@ int main()
             window.draw(*element);
         }
         window.display(); //swap forward and back buffers
-        frameTime = gameClock.getElapsedTime().asMilliseconds() - startTime; //calculate frametime
+        frameTime = gameClock->getElapsedTime().asMilliseconds() - startTime; //calculate frametime
         //cout << frameTime << "ms" << endl; //print the frame 
     }
 
