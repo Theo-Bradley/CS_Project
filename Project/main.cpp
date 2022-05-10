@@ -12,6 +12,9 @@ using namespace std;
 int frameTime = 0;
 int startTime = 0;
 
+char* pathc;
+string path;
+
 int offset = 0;
 bool paused = false;
 int pausedTime = 0;
@@ -149,6 +152,15 @@ void physicsLoop(Truck* playerTruck, AITruck* aiTruck)
 
 int main()
 {
+    if (_get_pgmptr(&pathc) != 0)
+    {
+        cout << "failed to get execution path!" << endl;
+        cin.get();
+        return 0;
+    }
+    path = string(pathc);
+    path.erase(path.length() - 12, string::npos); //12 = project.exe + 1
+
     sf::RenderWindow window(sf::VideoMode(1920, 1080), "Game Window", sf::Style::Default); //create a new 1080p window with title game window and not a fullscreen style
     window.setVerticalSyncEnabled(false); //enables vSync if possible
     sf::Clock* gameClock = new sf::Clock; //create a new clock
@@ -161,29 +173,29 @@ int main()
     bool mainMenuFlop = true;
     Projectile* currentProjectile = nullptr;
     sf::Texture backgroundTex;
-    backgroundTex.loadFromFile(R"(C:\Users\Blade\Project\CS_Project\x64\BladeDebug\Assets\Sprites\background.png)");
+    backgroundTex.loadFromFile(path + R"(\Assets\Sprites\background.png)");
     sf::Sprite backgroundSprite;
     backgroundSprite.setTexture(backgroundTex, true);
     sf::Texture groundTex;
-    groundTex.loadFromFile(R"(C:\Users\Blade\Project\CS_Project\x64\BladeDebug\Assets\Sprites\groundTex.png)");
+    groundTex.loadFromFile(path + R"(\Assets\Sprites\groundTex.png)");
     sf::RenderStates groundState;
     groundState.texture = &groundTex;
     sf::Texture truckTex;
-    truckTex.loadFromFile(R"(C:\Users\Blade\Project\CS_Project\Project\Assets\Sprites\truck.png)");
-    Truck playerTruck(20.f, sf::Vector2f(120, 700), sf::Vector2f(75, 35));
+    truckTex.loadFromFile(path + R"(\Assets\Sprites\truck.png)");
+    Truck playerTruck(20.f, sf::Vector2f(120, 700), sf::Vector2f(75, 35), path);
     playerTruck.setTexture(truckTex, true);
-    AITruck aiTruck(20.f, sf::Vector2f(1800, 700), sf::Vector2f(75, 35));
+    AITruck aiTruck(20.f, sf::Vector2f(1800, 700), sf::Vector2f(75, 35), path);
     aiTruck.setTexture(truckTex, false);
     aiTruck.setTextureRect(sf::IntRect(sf::Vector2i(80, 0), sf::Vector2i(-80, 43)));
     Stars* aiStars = nullptr;
     sf::Texture projectileTex;
-    projectileTex.loadFromFile(R"(C:\Users\Blade\Project\CS_Project\x64\BladeDebug\Assets\Sprites\projectile.png)");
+    projectileTex.loadFromFile(path + R"(\Assets\Sprites\projectile.png)");
 
-    CentredText playerNameText = CentredText(16);
+    CentredText playerNameText = CentredText(16, path);
     playerNameText.setText("Foo");
     Healthbar playerHealthbar;
     playerHealthbar.setPercent(100.f);
-    CentredText aiNameText = CentredText(16);
+    CentredText aiNameText = CentredText(16, path);
     aiNameText.setText("AI");
     Healthbar aiHealthbar;
     aiHealthbar.setPercent(100.f);
@@ -192,16 +204,16 @@ int main()
     powerBar.setPercent(50.f);
 
     //winloss + menu
-    CentredText t1 = CentredText(80);
-    CentredText t2 = CentredText(80);
-    CentredText t3 = CentredText(90);
-    Button b1("PLAY");
-    Button b2("QUIT");
-    TextBox tb;
-    Button b3("E");
-    Button b4("M");
-    Button b5("H");
-    CentredText t4 = CentredText(50);
+    CentredText t1 = CentredText(80, path);
+    CentredText t2 = CentredText(80, path);
+    CentredText t3 = CentredText(90, path);
+    Button b1("PLAY", path);
+    Button b2("QUIT", path);
+    TextBox tb = TextBox(path);
+    Button b3("E", path);
+    Button b4("M", path);
+    Button b5("H", path);
+    CentredText t4 = CentredText(50, path);
 
     thread physicsThread(physicsLoop,&playerTruck, &aiTruck);
 
@@ -287,7 +299,7 @@ int main()
 
                         playerNameText.setText(tb.getText());
 
-                        aiStars = new Stars(difficulty);
+                        aiStars = new Stars(difficulty, path);
                         uiables.push_back(aiStars);
 
                         state = State::Setup;
@@ -339,7 +351,10 @@ int main()
             playerTruck.setPosition(sf::Vector2f(120, 700));
             aiTruck.setPosition(sf::Vector2f(1800, 700));
             playerTruck.setVelocity(sf::Vector2f(0, 0));
+            playerTruck.setAngle(0.f);
+            aiTruck.setAngle(0.f);
 
+            playerTurn = true;
             state = State::PlayerTurn; //switch to play state
             cout << "Playing" << endl;
             paused = false;//let execution of physics loop continue
@@ -437,8 +452,9 @@ int main()
                         break;
 
                     case 2:
-                        float distance = abs(aiTruck.box.getPosition().x - (aiTruck.box.getSize().x / 0.5f)) - (playerTruck.box.getPosition().x - (playerTruck.box.getSize().x * 0.5f));
-                        aiTruck.changeHealth((1 / distance) * 20000.f);
+                        float distance = abs(aiTruck.box.getPosition().x + (aiTruck.box.getSize().x / 0.5f) - projectiles[projectiles.size() - 1]->getPosition().x);
+                        aiTruck.changeHealth((700000.f / (distance * distance)));
+                        //cout << (700000.f / (distance * distance)) << endl;
                         aiHealthbar.setPercent(aiTruck.health);
                         drawables.erase(drawables.begin());
                         projectiles.pop_back();
@@ -486,10 +502,13 @@ int main()
                     float theta = asin(top / bottom);
                     theta *= 0.5;
 
+                    sf::Vector2f dist((playerTruck.box.getPosition().x - aiTruck.box.getPosition().x), (playerTruck.box.getPosition().y - aiTruck.box.getPosition().y));
+
                     aiTruck.setAngle((theta / PI) * 180.f);
 
                     sf::Vector2f endPoint = aiTruck.spawnPoint();
                     sf::Vector2f startPoint = aiTruck.arm.getTransform().transformPoint(35, 6.5f); //transform point 35,6.5 for ai
+
                     currentProjectile = new Projectile(endPoint - startPoint, 500.f, &projectileTex);
                     currentProjectile->setPosition(endPoint);
                     projectiles.push_back(currentProjectile);

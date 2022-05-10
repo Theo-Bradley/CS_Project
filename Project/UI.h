@@ -122,9 +122,12 @@ private:
     sf::Vector2f middlePos;
 
 public:
-    CentredText(int size)
+    CentredText() = default;
+
+public:
+    CentredText(int size, string path)
     {
-        font.loadFromFile(R"(C:\Users\Blade\Project\CS_Project\x64\BladeDebug\Assets\ariblk.ttf)");
+        font.loadFromFile(path + R"(\Assets\ariblk.ttf)");
         text.setFont(font);
         text.setCharacterSize(size);
         text.setFillColor(sf::Color::Black);
@@ -188,10 +191,10 @@ private:
     sf::Sprite star3;
 
 public:
-    Stars(unsigned int number)
+    Stars(unsigned int number, string path)
     {
         count = number;
-        starTex.loadFromFile(R"(C:\Users\Blade\Project\CS_Project\x64\BladeDebug\Assets\Sprites\Star.png)");
+        starTex.loadFromFile(path + R"(\Assets\Sprites\Star.png)");
         star1.setTexture(starTex, true);
         star2.setTexture(starTex, true);
         star3.setTexture(starTex, true);
@@ -230,15 +233,16 @@ public:
 class Button : public Element
 {
     sf::RectangleShape bgRect;
-    CentredText text= CentredText(60);
+    CentredText* text;
 
 public:
-    Button(string str)
+    Button(string str, string path)
     {
-        text.setText(str);
-        bgRect.setSize(sf::Vector2f(80 + text.getWidth(), 40 + text.getHeight()));
+        text = new CentredText(60, path);
+        text->setText(str);
+        bgRect.setSize(sf::Vector2f(80 + text->getWidth(), 40 + text->getHeight()));
         bgRect.setFillColor(sf::Color::White);
-        text.setMiddlePos(sf::Vector2f(bgRect.getPosition().x + (bgRect.getSize().x * 0.5f), bgRect.getPosition().y - 100 + (bgRect.getSize().y * 0.3f))); //y is * by 0.3f to kep play and quit buttons centred-ish
+        text->setMiddlePos(sf::Vector2f(bgRect.getPosition().x + (bgRect.getSize().x * 0.5f), bgRect.getPosition().y - 100 + (bgRect.getSize().y * 0.3f))); //y is * by 0.3f to kep play and quit buttons centred-ish
     }
 
 public:
@@ -264,7 +268,7 @@ public:
     {
         bgRect.setPosition(position);
         //text.setMiddlePos((bgRect.getSize() * 0.5f) + bgRect.getPosition());
-        text.setMiddlePos(sf::Vector2f(bgRect.getPosition().x + (bgRect.getSize().x * 0.5f), bgRect.getPosition().y + (bgRect.getSize().y * 0.3f))); //y size is * 0.3f to keep play and quit buttons centred
+        text->setMiddlePos(sf::Vector2f(bgRect.getPosition().x + (bgRect.getSize().x * 0.5f), bgRect.getPosition().y + (bgRect.getSize().y * 0.3f))); //y size is * 0.3f to keep play and quit buttons centred
 
     }
 
@@ -278,7 +282,13 @@ public:
     void draw(sf::RenderTarget& target, sf::RenderStates states) const
     {
         target.draw(bgRect);
-        target.draw(text);
+        target.draw(*text);
+    }
+
+public:
+    ~Button()
+    {
+        delete text;
     }
 };
 
@@ -291,9 +301,9 @@ class TextBox : public Element
     sf::RectangleShape bgRect;
 
 public:
-    TextBox()
+    TextBox(string path)
     {
-        font.loadFromFile(R"(C:\Users\Blade\Project\CS_Project\x64\BladeDebug\Assets\ariblk.ttf)");
+        font.loadFromFile(path + R"(\Assets\ariblk.ttf)");
         uiText.setFont(font);
         uiText.setCharacterSize(25);
         label.setFont(font);

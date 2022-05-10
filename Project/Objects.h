@@ -19,9 +19,9 @@ private:
     
 
 public: 
-    Object(float Mass, sf::Vector2f Position, sf::Vector2f Size)
+    Object(float Mass, sf::Vector2f Position, sf::Vector2f Size, string path)
     {
-        texture.loadFromFile(R"(C:\Users\Blade\Project\CS_Project\x64\BladeDebug\Assets\Sprites\test.png)");
+        texture.loadFromFile(path + R"(\Assets\Sprites\test.png)");
         setTexture(texture, true);
         mass = Mass;
         //box.setPosition(Position + offset);
@@ -127,7 +127,7 @@ public:
     float shotPower = 0.f;
 
 public:
-    Truck(float Mass, sf::Vector2f Position, sf::Vector2f Size) : Object(Mass, Position, Size)
+    Truck(float Mass, sf::Vector2f Position, sf::Vector2f Size, string path) : Object(Mass, Position, Size, path)
     {
         arm.setSize(sf::Vector2f(35, 13));
         arm.setPosition(Position + sf::Vector2f(3, 15));
@@ -200,7 +200,7 @@ public:
 class AITruck : public Truck
 {
 public:
-    AITruck(float Mass, sf::Vector2f Position, sf::Vector2f Size) : Truck(Mass, Position, Size)
+    AITruck(float Mass, sf::Vector2f Position, sf::Vector2f Size, string path) : Truck(Mass, Position, Size, path)
     {
         arm.setOrigin(35, 13);
         arm.setFillColor(arm.getFillColor() * sf::Color::Red);
@@ -277,7 +277,7 @@ public:
     }
 
 public:
-    sf::Vector2f normalise(const sf::Vector2f& vec)
+    static sf::Vector2f normalise(const sf::Vector2f& vec)
     {
         float length = sqrt((vec.x * vec.x) + (vec.y * vec.y));
         if (length != 0)
@@ -316,7 +316,7 @@ public:
 
         if (pos.y + 6 >= 1080 - groundArr[(int)round(pos.x)])
         {
-            return 2;
+            return 2; //ground hit
         }
 
         else
